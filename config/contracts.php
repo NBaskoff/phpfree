@@ -1,4 +1,9 @@
 <?php
+
+use Contracts\DatabaseContract;
+use Databases\MySQLDatabase;
+use Databases\PostgresDatabase;
+
 return [
     /**
      * Одиночки (singletons)
@@ -6,10 +11,10 @@ return [
      */
     'singletons' => [
         // Для MySQL:
-        \Contracts\DatabaseContract::class => \Databases\MySQLDatabase::class,
+        DatabaseContract::class => MySQLDatabase::class,
 
         // ИЛИ для Postgres:
-        // \Contracts\DatabaseContract::class => \Databases\PostgresDatabase::class,
+        // DatabaseContract::class => PostgresDatabase::class,
     ],
 
     /**
