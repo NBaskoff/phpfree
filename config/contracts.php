@@ -5,9 +5,11 @@ return [
      * Объект создается один раз и переиспользуется.
      */
     'singletons' => [
-        // Интерфейс => Реализация
-        /*        DatabaseInterface::class => MysqlDatabase::class,
-                CacheInterface::class    => RedisCache::class,*/
+        // Для MySQL:
+        \Contracts\DatabaseContract::class => \Databases\MySQLDatabase::class,
+
+        // ИЛИ для Postgres:
+        // \Contracts\DatabaseContract::class => \Databases\PostgresDatabase::class,
     ],
 
     /**
