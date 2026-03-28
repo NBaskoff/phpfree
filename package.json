@@ -19,8 +19,7 @@
     "serve": "^14.2.0"
   },
   "dependencies": {
-    "inputmask": "^5.0.8",
     "jquery": "^3.7.0",
-    "jquery-validation": "^1.19.5"
+    "inputmask": "^5.0.8"
   }
 }
