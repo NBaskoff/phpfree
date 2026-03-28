@@ -4,3 +4,4 @@ ViewHelpers/.ide_helper.php
 .osp
 .DS_Store
 /node_modules
+.env
