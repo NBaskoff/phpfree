@@ -5,3 +5,4 @@ ViewHelpers/.ide_helper.php
 .DS_Store
 /node_modules
 .env
+/public/js/app.js.LICENSE.txt
