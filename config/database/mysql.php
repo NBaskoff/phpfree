@@ -1,9 +1,10 @@
 <?php
+
 return [
-    'host'     => 'localhost',
-    'port'     => '3306',
-    'dbname'   => 'my_mysql_db',
-    'username' => 'root',
-    'password' => '',
-    'charset'  => 'utf8mb4',
+    'host'     => env('DB_HOST', 'localhost'),
+    'port'     => env('DB_PORT', '3306'),
+    'dbname'   => env('DB_NAME'),
+    'username' => env('DB_USER'),
+    'password' => env('DB_PASS'),
+    'charset'  => env('DB_CHARSET', 'utf8mb4'),
 ];
