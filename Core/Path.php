@@ -9,7 +9,6 @@ class Path
 
     /**
      * Инициализация путей из index.php (передайте __DIR__)
-     * Автоматически определяет корень (уровень выше) и папку public
      */
     public static function initFromPublic(string $currentDir): void
     {
@@ -19,20 +18,33 @@ class Path
     }
 
     /**
-     * Путь к корню или вложенному файлу
+     * Путь к корню или вложенному файлу.
+     * Принимает аргументы вида 'config/app.php' или '/config/app.php'
      */
     public static function root(string $subPath = ''): string
     {
         $base = self::$root ?: dirname(__DIR__, 2);
-        return $base . ($subPath ? DIRECTORY_SEPARATOR . ltrim($subPath, DIRECTORY_SEPARATOR) : '');
+
+        if (!$subPath) {
+            return $base;
+        }
+
+        // Удаляем любые слеши в начале входящей строки и приклеиваем через системный разделитель
+        return $base . DIRECTORY_SEPARATOR . ltrim($subPath, '/\\');
     }
 
     /**
-     * Путь к папке public или вложенному ассету
+     * Путь к папке public или вложенному ассету.
+     * Принимает аргументы вида 'js/app.js' или '/js/app.js'
      */
     public static function public(string $subPath = ''): string
     {
         $base = self::$public ?: (self::root() . DIRECTORY_SEPARATOR . 'public');
-        return $base . ($subPath ? DIRECTORY_SEPARATOR . ltrim($subPath, DIRECTORY_SEPARATOR) : '');
+
+        if (!$subPath) {
+            return $base;
+        }
+
+        return $base . DIRECTORY_SEPARATOR . ltrim($subPath, '/\\');
     }
 }
