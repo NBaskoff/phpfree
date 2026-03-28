@@ -14,7 +14,7 @@ class IndexController extends BaseController
         $userData = [
             'title'    => 'Главная страница сайта',
             'userName' => 'Александр',
-            'userId'   => 7771
+            'userId'   => 777
         ];
         return $this->display('main', $userData);
     }

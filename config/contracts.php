@@ -1,28 +1,13 @@
 <?php
 
+use Core\Path;
 use Contracts\DatabaseContract;
-use Databases\MySQLDatabase;
-use Databases\PostgresDatabase;
+
+$dbConfig = require Path::config('database.php');
 
 return [
-    /**
-     * Одиночки (singletons)
-     * Объект создается один раз и переиспользуется.
-     */
     'singletons' => [
-        // Для MySQL:
-        DatabaseContract::class => MySQLDatabase::class,
-
-        // ИЛИ для Postgres:
-        // DatabaseContract::class => PostgresDatabase::class,
+        DatabaseContract::class => $dbConfig['class'],
     ],
-
-    /**
-     * Обычные привязки (bind)
-     * Каждый раз создается новый экземпляр класса.
-     */
-    'bindings' => [
-        // Интерфейс => Реализация
-        //LoggerInterface::class => FileLogger::class,
-    ],
+    'bindings' => []
 ];
