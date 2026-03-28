@@ -18,6 +18,6 @@ class IndexController extends BaseController
         ];
 
         // Вызываем метод родителя
-        $this->display('main', $userData);
+        return  $this->display('main', $userData);
     }
 }
