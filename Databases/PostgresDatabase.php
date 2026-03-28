@@ -3,47 +3,43 @@
 namespace Databases;
 
 use Contracts\DatabaseContract;
-use Core\Path;
 use PDO;
 use PDOException;
+use PDOStatement;
 use Exception;
 
 class PostgresDatabase implements DatabaseContract
 {
     private PDO $pdo;
 
-    /**
-     * @throws Exception
-     */
     public function __construct()
     {
-        $configPath = Path::config('database/postgres.php');
+        $host   = env('DB_HOST', '127.0.0.1');
+        $port   = env('DB_PORT', '5432');
+        $dbname = env('DB_NAME');
+        $user   = env('DB_USER');
+        $pass   = env('DB_PASS', '');
 
-        if (!file_exists($configPath)) {
-            throw new Exception("Конфигурация Postgres не найдена: $configPath");
+        if (!$dbname || !$user) {
+            throw new Exception("Ошибка Postgres: Проверьте DB_NAME и DB_USER в .env");
         }
 
-        $c = require $configPath;
-
-        // В Postgres кодировка НЕ указывается в DSN
-        $dsn = "pgsql:host={$c['host']};port={$c['port']};dbname={$c['dbname']}";
+        $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
 
         try {
-            $this->pdo = new PDO($dsn, $c['username'], $c['password'], [
+            $this->pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ]);
 
-            // Для Postgres кодировка задается отдельным запросом после подключения
-            if (!empty($c['charset'])) {
-                $this->pdo->exec("SET NAMES '{$c['charset']}'");
-            }
+            $charset = env('DB_CHARSET', 'utf8');
+            $this->pdo->exec("SET NAMES '{$charset}'");
         } catch (PDOException $e) {
             throw new Exception("Ошибка подключения к Postgres: " . $e->getMessage());
         }
     }
 
-    public function query(string $sql, array $params = []): \PDOStatement
+    public function query(string $sql, array $params = []): PDOStatement
     {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -62,7 +58,6 @@ class PostgresDatabase implements DatabaseContract
 
     public function lastInsertId(?string $name = null): string|false
     {
-        // В Postgres для lastInsertId часто нужно передавать имя последовательности (sequence)
         return $this->pdo->lastInsertId($name);
     }
 

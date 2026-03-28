@@ -3,7 +3,6 @@
 namespace Databases;
 
 use Contracts\DatabaseContract;
-use Core\Path;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -13,28 +12,25 @@ class MySQLDatabase implements DatabaseContract
 {
     private PDO $pdo;
 
-    /**
-     * @throws Exception
-     */
     public function __construct()
     {
-        $configPath = Path::config('database/mysql.php');
+        $host    = env('DB_HOST', '127.0.0.1');
+        $port    = env('DB_PORT', '3306');
+        $dbname  = env('DB_NAME');
+        $user    = env('DB_USER');
+        $pass    = env('DB_PASS', '');
+        $charset = env('DB_CHARSET', 'utf8mb4');
 
-        if (!file_exists($configPath)) {
-            throw new Exception("Конфигурация MySQL не найдена по адресу: {$configPath}");
+        if (!$dbname || !$user) {
+            throw new Exception("Ошибка MySQL: Проверьте DB_NAME и DB_USER в .env");
         }
 
-        $c = require $configPath;
-
-        // В MySQL кодировка (charset) передается прямо в DSN
-        $dsn = "mysql:host={$c['host']};port={$c['port']};dbname={$c['dbname']};charset={$c['charset']}";
+        $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
 
         try {
-            // В PHP 8.0+ режим PDO::ERR_MODE_EXCEPTION включен по умолчанию,
-            // поэтому мы фокусируемся на других важных опциях.
-            $this->pdo = new PDO($dsn, $c['username'], $c['password'], [
+            $this->pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false, // Используем реальные подготовленные выражения
+                PDO::ATTR_EMULATE_PREPARES   => false,
             ]);
         } catch (PDOException $e) {
             throw new Exception("Ошибка подключения к MySQL: " . $e->getMessage());
@@ -63,18 +59,7 @@ class MySQLDatabase implements DatabaseContract
         return $this->pdo->lastInsertId($name);
     }
 
-    public function beginTransaction(): bool
-    {
-        return $this->pdo->beginTransaction();
-    }
-
-    public function commit(): bool
-    {
-        return $this->pdo->commit();
-    }
-
-    public function rollBack(): bool
-    {
-        return $this->pdo->rollBack();
-    }
+    public function beginTransaction(): bool { return $this->pdo->beginTransaction(); }
+    public function commit(): bool { return $this->pdo->commit(); }
+    public function rollBack(): bool { return $this->pdo->rollBack(); }
 }
