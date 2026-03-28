@@ -5,21 +5,25 @@ namespace Core;
 use InvalidArgumentException;
 use Exception;
 
-class Contract {
+class Contract
+{
     protected static array $bindings = [];
     protected static array $instances = [];
 
     /**
-     * Загрузка конфигурации из PHP файла
+     * Загрузка конфигурации из PHP файла (обычно config/contracts.php)
+     * @throws Exception
      */
-    public static function loadConfig(string $path): void {
+    public static function loadConfig(string $path): void
+    {
         if (!file_exists($path)) {
-            die("Ошибка Contract: Файл конфигурации не найден по пути: {$path}");
+            throw new Exception("Файл конфигурации контрактов не найден: {$path}");
         }
 
         $config = require $path;
+
         if (!is_array($config)) {
-            die("Ошибка Contract: Файл конфигурации должен возвращать массив.");
+            throw new Exception("Конфиг контрактов должен возвращать массив.");
         }
 
         if (isset($config['bindings'])) {
@@ -36,9 +40,10 @@ class Contract {
     }
 
     /**
-     * Регистрация обычной связи
+     * Регистрация обычной связи (каждый раз новый объект)
      */
-    public static function bind(string $interface, string $implementation): void {
+    public static function bind(string $interface, string $implementation): void
+    {
         self::validate($interface, $implementation);
         self::$bindings[$interface] = [
             'concrete' => $implementation,
@@ -47,9 +52,10 @@ class Contract {
     }
 
     /**
-     * Регистрация синглтона
+     * Регистрация синглтона (один объект на всё время работы)
      */
-    public static function singleton(string $interface, string $implementation): void {
+    public static function singleton(string $interface, string $implementation): void
+    {
         self::validate($interface, $implementation);
         self::$bindings[$interface] = [
             'concrete' => $implementation,
@@ -58,40 +64,54 @@ class Contract {
     }
 
     /**
+     * Создание объекта (основной метод движка)
+     *
      * @template T
-     * @param class-string<T> $abstract
+     * @param class-string<T> $abstract Полное имя интерфейса или класса
      * @return T
+     * @throws Exception
      */
-    public static function make(string $abstract) {
-        if (!isset(self::$bindings[$abstract])) {
-            if (class_exists($abstract)) {
-                return new $abstract();
+    public static function make(string $abstract)
+    {
+        // 1. Если для этого интерфейса/класса есть зарегистрированная связь
+        if (isset(self::$bindings[$abstract])) {
+            $binding = self::$bindings[$abstract];
+            $concrete = $binding['concrete'];
+
+            if ($binding['singleton']) {
+                if (!isset(self::$instances[$abstract])) {
+                    self::$instances[$abstract] = new $concrete();
+                }
+                return self::$instances[$abstract];
             }
-            throw new Exception("Связь для {$abstract} не найдена.");
+
+            return new $concrete();
         }
 
-        $binding = self::$bindings[$abstract];
-        $concrete = $binding['concrete'];
-
-        if ($binding['singleton']) {
-            if (!isset(self::$instances[$abstract])) {
-                self::$instances[$abstract] = new $concrete();
-            }
-            return self::$instances[$abstract];
+        // 2. Если связи нет, но класс существует — создаем его напрямую
+        if (class_exists($abstract)) {
+            return new $abstract();
         }
 
-        return new $concrete();
+        throw new Exception("Ошибка контейнера: Связь для '{$abstract}' не зарегистрирована и класс не найден.");
     }
 
-    protected static function validate(string $interface, string $implementation): void {
+    /**
+     * Проверка существования классов и интерфейсов
+     */
+    protected static function validate(string $interface, string $implementation): void
+    {
         if (!interface_exists($interface) && !class_exists($interface)) {
-            throw new InvalidArgumentException("Интерфейс или класс {$interface} не найден.");
+            throw new InvalidArgumentException("Контракт (интерфейс/класс) '{$interface}' не найден.");
         }
+
         if (!class_exists($implementation)) {
-            throw new InvalidArgumentException("Класс реализации {$implementation} не найден.");
+            throw new InvalidArgumentException("Реализация (класс) '{$implementation}' не найдена.");
         }
+
+        // Проверяем, реализует ли класс данный интерфейс (или наследует класс)
         if (!is_subclass_of($implementation, $interface) && $implementation !== $interface) {
-            throw new InvalidArgumentException("Класс {$implementation} не реализует {$interface}.");
+            throw new InvalidArgumentException("Класс '{$implementation}' не соответствует контракту '{$interface}'.");
         }
     }
 }
