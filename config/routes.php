@@ -1,0 +1,13 @@
+<?php
+return [
+    '/' => [
+        'GET' => [\Controllers\IndexController::class, 'actionIndexGet']
+    ],
+/*    '/user/{id}' => [
+        'GET' => [UserController::class, 'show']
+    ],
+    '/contact' => [
+        'GET'  => [ContactController::class, 'showForm'],
+        'POST' => [ContactController::class, 'submitForm']
+    ],*/
+];

@@ -1,0 +1,10 @@
+# Настройки PhpStorm
+.idea/
+
+# Автогенерируемый файл подсказок для хелперов
+ViewHelpers/.ide_helper.php
+
+# Логи и временные файлы
+*.log
+.osp
+.DS_Store
