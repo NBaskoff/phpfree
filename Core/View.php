@@ -118,6 +118,7 @@ class View
 
     /**
      * Основной метод рендеринга
+     * @throws Exception
      */
     public static function render(string $template, array $data = []): string
     {

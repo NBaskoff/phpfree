@@ -13,6 +13,9 @@ class MySQLDatabase implements DatabaseContract
 {
     private PDO $pdo;
 
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
         $configPath = Path::config('database/mysql.php');

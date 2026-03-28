@@ -12,6 +12,9 @@ class PostgresDatabase implements DatabaseContract
 {
     private PDO $pdo;
 
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
         $configPath = Path::config('database/postgres.php');
