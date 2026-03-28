@@ -3,11 +3,13 @@
 use Core\Path;
 use Contracts\DatabaseContract;
 
-$dbConfig = require Path::config('database.php');
+// Теперь здесь лежит просто строка, например "Databases\MySQLDatabase"
+$database = require Path::config('database.php');
 
 return [
     'singletons' => [
-        DatabaseContract::class => $dbConfig['class'],
+        // Передаем строку напрямую
+        DatabaseContract::class => $database,
     ],
     'bindings' => []
 ];
