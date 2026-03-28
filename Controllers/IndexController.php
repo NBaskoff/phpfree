@@ -2,19 +2,22 @@
 
 namespace Controllers;
 
-use Core\View;
+use Exception;
 
-class IndexController
+class IndexController extends BaseController
 {
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     public function actionIndexGet()
     {
-        echo View::render('main', [
+        $userData = [
             'title'    => 'Главная страница сайта',
             'userName' => 'Александр',
             'userId'   => 777
-        ]);
+        ];
+
+        // Вызываем метод родителя
+        $this->display('main', $userData);
     }
 }
