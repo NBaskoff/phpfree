@@ -84,7 +84,19 @@ class Router
     private function abort(int $code, string $message): void
     {
         http_response_code($code);
-        echo "<h1>$code</h1><p>$message</p>";
+
+        try {
+            // Пытаемся отрендерить красивую страницу ошибки templates/errors/404.php
+            echo View::render("errors/{$code}", [
+                'code' => $code,
+                'message' => $message,
+                'title' => "Ошибка $code"
+            ]);
+        } catch (\Exception $e) {
+            // Если шаблона для конкретной ошибки нет, выводим простой текст
+            echo "<h1>$code</h1><p>$message</p>";
+        }
+
         exit;
     }
 }
