@@ -35,6 +35,7 @@ class View
 
     /**
      * Загружает хелперы из конфига, создает vh_* функции и файл подсказок для IDE
+     * @throws Exception
      */
     private static function loadHelpers(): void
     {
@@ -138,6 +139,7 @@ class View
 
     /**
      * Основной метод рендеринга шаблона
+     * @throws Exception
      */
     public static function render(string $template, array $data = []): string
     {
