@@ -13,7 +13,7 @@ class View
     private static array $sections = [];
     private static array $sectionStack = [];
 
-    // Имя файла конфигурации хелперов (путь к папке берется из Path::config())
+    // Имя файла конфигурации хелперов
     private static string $helpersFileName = 'view_helpers.php';
 
     /**
@@ -33,9 +33,8 @@ class View
             return;
         }
 
-        // Получаем путь к конфигу через центральный класс Path
         $fullConfigPath = Path::config(self::$helpersFileName);
-        $metaFile = Path::root('ViewHelpers/.ide_helper.php');
+        $metaFile = Path::root('ViewHelpers' . DIRECTORY_SEPARATOR . '.ide_helper.php');
         $metaContent = "<?php\n/** @noinspection ALL */\n\n";
 
         if (!file_exists($fullConfigPath)) {
@@ -124,6 +123,7 @@ class View
     {
         self::loadHelpers();
 
+        // Важно: сбрасываем макет и секции только ПЕРЕД началом нового рендеринга
         self::$layout = null;
         self::$sections = [];
 
@@ -139,7 +139,7 @@ class View
             return ob_get_clean();
         };
 
-        // Путь к шаблону запрашиваем у Path::templates()
+        // Путь к шаблону через Path::templates()
         $templatePath = Path::templates($template . ".php");
 
         if (!file_exists($templatePath)) {
@@ -149,13 +149,13 @@ class View
         $content = $renderFunc($templatePath, $data);
 
         if (self::$layout) {
-            // Путь к макету также через Path::templates()
             $layoutPath = Path::templates(self::$layout . ".php");
 
             if (!file_exists($layoutPath)) {
                 throw new Exception("Макет (layout) не найден по пути: $layoutPath");
             }
 
+            // Передаем основной контент в макет
             $data['content'] = $content;
             return $renderFunc($layoutPath, $data);
         }
