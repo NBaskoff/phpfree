@@ -13,29 +13,19 @@ class View
     private static array $sections = [];
     private static array $sectionStack = [];
 
-    // Настройки путей по умолчанию (относительно корня проекта)
-    private static string $templatesDir = 'assets/templates';
-    private static string $configPath = 'config/view_helpers.php';
+    // Имя файла конфигурации хелперов (путь к папке берется из Path::config())
+    private static string $helpersFileName = 'view_helpers.php';
 
     /**
-     * Указывает папку с шаблонами (например, 'assets/templates')
+     * Позволяет изменить имя файла конфигурации хелперов
      */
-    public static function setTemplatesDir(string $path): void
+    public static function setHelpersFile(string $fileName): void
     {
-        self::$templatesDir = trim($path, '/');
+        self::$helpersFileName = ltrim($fileName, '/\\');
     }
 
     /**
-     * Указывает путь к файлу конфигурации хелперов
-     */
-    public static function setConfigPath(string $path): void
-    {
-        self::$configPath = trim($path, '/');
-    }
-
-    /**
-     * Загружает хелперы из конфига, создает vh_* функции и файл подсказок для IDE
-     * @throws Exception
+     * Загружает хелперы, создает vh_* функции и файл подсказок для IDE
      */
     private static function loadHelpers(): void
     {
@@ -43,7 +33,8 @@ class View
             return;
         }
 
-        $fullConfigPath = Path::root(self::$configPath);
+        // Получаем путь к конфигу через центральный класс Path
+        $fullConfigPath = Path::config(self::$helpersFileName);
         $metaFile = Path::root('ViewHelpers/.ide_helper.php');
         $metaContent = "<?php\n/** @noinspection ALL */\n\n";
 
@@ -58,7 +49,6 @@ class View
         }
 
         foreach ($helpers as $funcName => $fullClass) {
-            // Нормализация имени класса для корректной работы eval и Reflection
             $normalizedClass = '\\' . ltrim($fullClass, '\\');
 
             if (!class_exists($normalizedClass)) {
@@ -66,12 +56,11 @@ class View
             }
 
             if (!method_exists($normalizedClass, '__invoke')) {
-                throw new Exception("Ошибка хелпера '{$funcName}': В классе '{$normalizedClass}' отсутствует обязательный метод __invoke().");
+                throw new Exception("Ошибка хелпера '{$funcName}': В классе '{$normalizedClass}' отсутствует метод __invoke().");
             }
 
             $functionName = 'vh_' . $funcName;
 
-            // Динамическая регистрация глобальной функции
             if (!function_exists($functionName)) {
                 eval("function $functionName(...\$args) { 
                     static \$inst; 
@@ -80,7 +69,6 @@ class View
                 }");
             }
 
-            // Сбор метаданных для автоподсказок в PhpStorm
             try {
                 $ref = new ReflectionClass($normalizedClass);
                 $method = $ref->getMethod('__invoke');
@@ -98,17 +86,11 @@ class View
             } catch (ReflectionException $e) {}
         }
 
-        // Пытаемся создать папку ViewHelpers, если её нет, для файла подсказок
-        $metaDir = dirname($metaFile);
-        if (!is_dir($metaDir)) {
-            mkdir($metaDir, 0755, true);
-        }
-
         file_put_contents($metaFile, $metaContent);
         self::$helpersLoaded = true;
     }
 
-    // --- Управление секциями (вызываются через хелперы) ---
+    // --- Управление секциями ---
 
     public static function sectionStart(string $name): void
     {
@@ -118,9 +100,7 @@ class View
 
     public static function sectionEnd(): void
     {
-        if (empty(self::$sectionStack)) {
-            return;
-        }
+        if (empty(self::$sectionStack)) return;
         $name = array_pop(self::$sectionStack);
         self::$sections[$name] = (self::$sections[$name] ?? '') . ob_get_clean();
     }
@@ -130,7 +110,7 @@ class View
         return self::$sections[$name] ?? '';
     }
 
-    // --- Управление макетами (вызывается через хелпер) ---
+    // --- Управление макетами ---
 
     public static function layout(string $name): void
     {
@@ -138,18 +118,15 @@ class View
     }
 
     /**
-     * Основной метод рендеринга шаблона
-     * @throws Exception
+     * Основной метод рендеринга
      */
     public static function render(string $template, array $data = []): string
     {
         self::loadHelpers();
 
-        // Сброс состояния перед каждым новым вызовом render
         self::$layout = null;
         self::$sections = [];
 
-        // Функция-обертка для изоляции переменных шаблона
         $renderFunc = function($path, $vars) {
             extract($vars);
             ob_start();
@@ -162,8 +139,8 @@ class View
             return ob_get_clean();
         };
 
-        // Путь к основному шаблону через Core\Path
-        $templatePath = Path::root(self::$templatesDir . DIRECTORY_SEPARATOR . $template . ".php");
+        // Путь к шаблону запрашиваем у Path::templates()
+        $templatePath = Path::templates($template . ".php");
 
         if (!file_exists($templatePath)) {
             throw new Exception("Шаблон не найден по пути: $templatePath");
@@ -171,15 +148,14 @@ class View
 
         $content = $renderFunc($templatePath, $data);
 
-        // Если в шаблоне был задан макет через vh_layout()
         if (self::$layout) {
-            $layoutPath = Path::root(self::$templatesDir . DIRECTORY_SEPARATOR . self::$layout . ".php");
+            // Путь к макету также через Path::templates()
+            $layoutPath = Path::templates(self::$layout . ".php");
 
             if (!file_exists($layoutPath)) {
                 throw new Exception("Макет (layout) не найден по пути: $layoutPath");
             }
 
-            // Оборачиваем контент в макет через переменную $content
             $data['content'] = $content;
             return $renderFunc($layoutPath, $data);
         }
