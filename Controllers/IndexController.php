@@ -9,15 +9,13 @@ class IndexController extends BaseController
     /**
      * @throws Exception
      */
-    public function actionIndexGet()
+    public function actionIndexGet(): string
     {
         $userData = [
             'title'    => 'Главная страница сайта',
             'userName' => 'Александр',
             'userId'   => 777
         ];
-
-        // Вызываем метод родителя
-        return  $this->display('main', $userData);
+        return $this->display('main', $userData);
     }
 }
