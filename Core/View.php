@@ -25,7 +25,9 @@ class View
     }
 
     /**
-     * Загружает хелперы, создает vh_* функции и файл подсказок для IDE
+     * Загружает хелперы и опционально генерирует подсказки для IDE
+     *
+     * @throws Exception
      */
     private static function loadHelpers(): void
     {
@@ -33,19 +35,21 @@ class View
             return;
         }
 
+        // Получаем путь к конфигу через обновленный метод Path::configs()
         $fullConfigPath = Path::configs(self::$helpersFileName);
-        $metaFile = Path::root('ViewHelpers' . DIRECTORY_SEPARATOR . '.ide_helper.php');
-        $metaContent = "<?php\n/** @noinspection ALL */\n\n";
 
         if (!file_exists($fullConfigPath)) {
             throw new Exception("Файл конфигурации хелперов не найден: $fullConfigPath");
         }
 
         $helpers = include $fullConfigPath;
-
         if (!is_array($helpers)) {
             throw new Exception("Конфигурация хелперов должна возвращать массив.");
         }
+
+        // Проверяем настройку: если APP_IDE_HELPER нет или false, вернется false
+        $shouldGenerateMeta = (bool)env('APP_IDE_HELPER', false);
+        $metaContent = "<?php\n/** @noinspection ALL */\n\n";
 
         foreach ($helpers as $funcName => $fullClass) {
             $normalizedClass = '\\' . ltrim($fullClass, '\\');
@@ -54,12 +58,9 @@ class View
                 throw new Exception("Ошибка хелпера '{$funcName}': Класс '{$normalizedClass}' не найден.");
             }
 
-            if (!method_exists($normalizedClass, '__invoke')) {
-                throw new Exception("Ошибка хелпера '{$funcName}': В классе '{$normalizedClass}' отсутствует метод __invoke().");
-            }
-
             $functionName = 'vh_' . $funcName;
 
+            // Регистрируем функцию в памяти
             if (!function_exists($functionName)) {
                 eval("function $functionName(...\$args) { 
                     static \$inst; 
@@ -68,24 +69,34 @@ class View
                 }");
             }
 
-            try {
-                $ref = new ReflectionClass($normalizedClass);
-                $method = $ref->getMethod('__invoke');
-                $params = [];
-                foreach ($method->getParameters() as $p) {
-                    $type = $p->hasType() ? $p->getType() . ' ' : '';
-                    $paramStr = $type . '$' . $p->getName();
-                    if ($p->isDefaultValueAvailable()) {
-                        $default = var_export($p->getDefaultValue(), true);
-                        $paramStr .= " = " . str_replace("\n", "", $default);
+            // Генерируем мета-данные только если флаг включен
+            if ($shouldGenerateMeta) {
+                try {
+                    $ref = new \ReflectionClass($normalizedClass);
+                    $method = $ref->getMethod('__invoke');
+                    $params = [];
+                    foreach ($method->getParameters() as $p) {
+                        $type = $p->hasType() ? $p->getType() . ' ' : '';
+                        $paramStr = $type . '$' . $p->getName();
+                        if ($p->isDefaultValueAvailable()) {
+                            $default = var_export($p->getDefaultValue(), true);
+                            $paramStr .= " = " . str_replace("\n", "", $default);
+                        }
+                        $params[] = $paramStr;
                     }
-                    $params[] = $paramStr;
+                    $metaContent .= "function $functionName(" . implode(', ', $params) . ") { }\n";
+                } catch (\ReflectionException $e) {
+                    // Игнорируем ошибки рефлексии для мета-файла
                 }
-                $metaContent .= "function $functionName(" . implode(', ', $params) . ") { }\n";
-            } catch (ReflectionException $e) {}
+            }
         }
 
-        file_put_contents($metaFile, $metaContent);
+        // Записываем файл только если генерация была запрошена
+        if ($shouldGenerateMeta) {
+            $metaFile = Path::root('ViewHelpers' . DIRECTORY_SEPARATOR . '.ide_helper.php');
+            file_put_contents($metaFile, $metaContent);
+        }
+
         self::$helpersLoaded = true;
     }
 
