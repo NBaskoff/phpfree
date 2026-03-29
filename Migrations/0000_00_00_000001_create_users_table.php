@@ -5,7 +5,7 @@ use Contracts\DatabaseContract;
 /**
  * Миграция для создания таблицы пользователей
  */
-class CreateUserTable
+class CreateUsersTable
 {
     /**
      * Запуск миграции: создание таблицы
