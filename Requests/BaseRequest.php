@@ -41,9 +41,6 @@ abstract class BaseRequest
     }
 
     /**
-     * Абстрактный метод: обязан быть реализован в наследнике.
-     * Не может быть private.
-     *
      * @return void
      */
     abstract protected function validate(): void;
@@ -59,6 +56,33 @@ abstract class BaseRequest
         }
 
         return is_string($data) ? htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8') : $data;
+    }
+
+    /**
+     * @param string $field
+     * @param array $rules
+     * @return void
+     */
+    protected function validateField(string $field, array $rules): void
+    {
+        $value = $this->get($field);
+
+        foreach ($rules as $rule) {
+            if ($rule instanceof RuleContract) {
+                if (!$rule($value)) {
+                    $this->addError($rule->getMessage($field));
+                }
+            }
+        }
+    }
+
+    /**
+     * @param string $msg
+     * @return void
+     */
+    protected function addError(string $msg): void
+    {
+        $this->errors[] = $msg;
     }
 
     /**
