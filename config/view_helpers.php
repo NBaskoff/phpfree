@@ -6,6 +6,7 @@ return [
     'section_end' => \ViewHelpers\SectionEndViewHelper::class,
     'section_get' => \ViewHelpers\SectionGetViewHelper::class,
     'mix' => \ViewHelpers\MixViewHelper::class,
+    'csrf' => \ViewHelpers\CsrfViewHelper::class,
     // Пример кастомного хелпера
     // 'format_price' => \ViewHelpers\FormatPriceHelper::class,
 ];
