@@ -4,23 +4,18 @@ namespace Controllers;
 
 use Actions\User\ListUsersAction;
 
-/**
- * Контроллер управления пользователями
- */
 class UserController extends BaseController
 {
     /**
-     * Отображает страницу со списком всех пользователей
+     * Экшен внедряется автоматически через аргументы метода
      */
-    public function actionIndexGet()
+    public function actionIndexGet(ListUsersAction $action)
     {
-        // Просто создаем экшен напрямую через new
-        $action = new ListUsersAction();
+        $users = $action->execute();
 
-        // Получаем данные и выводим
         return $this->display('user/index', [
-            'users' => $action->execute(),
-            'title' => 'Список пользователей'
+            'users' => $users,
+            'title' => 'Список из 100 пользователей'
         ]);
     }
 }

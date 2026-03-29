@@ -74,8 +74,6 @@ class Router
 
     /**
      * Основной метод запуска: находит соответствие URL и вызывает контроллер
-     *
-     * @return void
      */
     public function dispatch(): void
     {
@@ -83,26 +81,42 @@ class Router
         $method = strtoupper($_SERVER['REQUEST_METHOD']);
 
         foreach ($this->routes as $route) {
-            // Проверяем совпадение HTTP-метода и регулярного выражения пути
             if ($route['method'] === $method && preg_match($route['pattern'], $url, $matches)) {
 
-                // ПРОВЕРКА CSRF: только для опасных методов и если защита активна в конфиге
                 if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH']) && $route['csrf'] === true) {
                     $this->checkCsrf();
                 }
 
                 [$controllerName, $methodName] = $route['handler'];
-
-                // Оставляем в $matches только строковые ключи (наши параметры {id} и т.д.)
-                $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+                $urlParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
                 if (class_exists($controllerName)) {
-                    // Создание экземпляра контроллера через new
                     $controller = new $controllerName();
 
                     if (method_exists($controller, $methodName)) {
-                        // Вызываем метод контроллера, передавая параметры как аргументы
-                        call_user_func_array([$controller, $methodName], $params);
+                        $reflection = new \ReflectionMethod($controllerName, $methodName);
+                        $methodArgs = [];
+
+                        foreach ($reflection->getParameters() as $parameter) {
+                            $name = $parameter->getName();
+                            $type = $parameter->getType();
+
+                            // Если это класс (например, ListUsersAction)
+                            if ($type && !$type->isBuiltin()) {
+                                $methodArgs[] = Contract::make($type->getName());
+                            }
+                            // Если это параметр из URL (например, {id})
+                            elseif (isset($urlParams[$name])) {
+                                $methodArgs[] = $urlParams[$name];
+                            }
+                            // Значение по умолчанию, если есть
+                            elseif ($parameter->isDefaultValueAvailable()) {
+                                $methodArgs[] = $parameter->getDefaultValue();
+                            }
+                        }
+
+                        // Вызываем метод с подготовленными аргументами
+                        call_user_func_array([$controller, $methodName], $methodArgs);
                         return;
                     }
                 }
@@ -112,7 +126,6 @@ class Router
             }
         }
 
-        // Если совпадений не найдено
         $this->abort(404, "Page not found");
     }
 
