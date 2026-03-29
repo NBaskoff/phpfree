@@ -7,7 +7,7 @@ return [
     'section_get' => \ViewHelpers\SectionGetViewHelper::class,
     'mix' => \ViewHelpers\MixViewHelper::class,
     'csrf' => \ViewHelpers\CsrfViewHelper::class,
-    'has_role' => \ViewHelpers\UserViewHelper::class,
+    'has_role' => \ViewHelpers\HasRoleViewHelper::class,
     // Пример кастомного хелпера
     // 'format_price' => \ViewHelpers\FormatPriceHelper::class,
     'date' => \ViewHelpers\DateViewHelper::class,
