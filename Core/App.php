@@ -27,6 +27,6 @@ class App
         Env::load(Path::root('.env'));
 
         // 4. Загрузка конфигурации DI-контейнера
-        Contract::loadConfig(Path::config('contracts.php'));
+        Contract::loadConfig(Path::configs('contracts.php'));
     }
 }

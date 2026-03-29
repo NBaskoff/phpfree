@@ -20,7 +20,7 @@ class ConsoleKernel
      */
     public function __construct()
     {
-        $configPath = Path::config('commands.php');
+        $configPath = Path::configs('commands.php');
         if (file_exists($configPath)) {
             $this->commands = require $configPath;
         }

@@ -11,5 +11,5 @@ App::init(__DIR__);
 
 // Запускаем роутинг
 $router = new Router();
-$router->loadRoutes(Path::config('routes.php'));
+$router->loadRoutes('', Path::routes('web.php'));
 $router->dispatch();

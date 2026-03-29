@@ -33,7 +33,7 @@ class View
             return;
         }
 
-        $fullConfigPath = Path::config(self::$helpersFileName);
+        $fullConfigPath = Path::configs(self::$helpersFileName);
         $metaFile = Path::root('ViewHelpers' . DIRECTORY_SEPARATOR . '.ide_helper.php');
         $metaContent = "<?php\n/** @noinspection ALL */\n\n";
 

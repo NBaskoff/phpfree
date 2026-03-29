@@ -17,49 +17,52 @@ class Router
     private array $routes = [];
 
     /**
-     * Загружает маршруты из внешнего массива конфигурации.
-     * Ожидает структуру: [ 'url' => [ 'METHOD' => [Controller::class, 'method'] ] ]
+     * Загружает маршруты из файла.
+     * Теперь префикс — первый аргумент.
      *
-     * @param string $path Абсолютный путь к файлу конфигурации
+     * @param string $prefix Префикс для URL (например, '/api')
+     * @param string $path Путь к файлу конфига
      * @return void
      */
-    public function loadRoutes(string $path): void
+    public function loadRoutes(string $prefix, string $path): void
     {
         if (!file_exists($path)) {
-            die("Ошибка Router: Файл конфигурации не найден по пути: {$path}");
+            die("Ошибка Router: Файл конфигурации не найден: {$path}");
         }
 
         $routes = require $path;
 
-        if (!is_array($routes)) {
-            die("Ошибка Router: Файл конфигурации должен возвращать массив.");
-        }
+        // Нормализуем префикс: убираем лишние слеши и добавляем один в начало
+        $prefix = trim($prefix, '/');
+        $prefix = $prefix ? '/' . $prefix : '';
 
-        foreach ($routes as $path => $methods) {
+        foreach ($routes as $url => $methods) {
+            // Формируем полный URL
+            $fullUrl = $prefix . '/' . ltrim($url, '/');
+
+            // Очищаем от двойных слешей и убираем лишний слеш в конце (кроме корня)
+            $fullUrl = preg_replace('#/+#', '/', $fullUrl);
+            if ($fullUrl !== '/') {
+                $fullUrl = rtrim($fullUrl, '/');
+            }
+
             foreach ($methods as $method => $handler) {
-                $this->addRoute($method, $path, $handler);
+                $this->addRoute($method, $fullUrl, $handler);
             }
         }
     }
 
     /**
-     * Внутренний метод для преобразования пути в регулярное выражение
-     *
-     * @param string $method HTTP метод (GET, POST и т.д.)
-     * @param string $path URL путь из конфига
-     * @param array $handler Массив с контроллером и методом
-     * @return void
+     * Регистрация маршрута в системе
      */
     private function addRoute(string $method, string $path, array $handler): void
     {
-        // Превращаем {id} или {slug} в именованные группы захвата (?P<name>[^/]+)
         $pattern = "@^" . preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $path) . "$@";
 
         $this->routes[] = [
             'method'  => strtoupper($method),
             'pattern' => $pattern,
             'handler' => $handler,
-            // Если в массиве передан 'csrf' => false, отключаем защиту, иначе — включена
             'csrf'    => $handler['csrf'] ?? true
         ];
     }
