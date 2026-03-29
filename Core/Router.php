@@ -3,6 +3,7 @@
 namespace Core;
 
 use Contracts\DatabaseContract;
+use Contracts\SessionContract;
 use Repositories\UserRepository;
 use ReflectionMethod;
 use Exception;
@@ -93,24 +94,34 @@ class Router
                         $reflection = new ReflectionMethod($controllerName, $methodName);
                         $methodArgs = [];
 
+                        // Перебираем параметры метода контроллера по порядку
                         foreach ($reflection->getParameters() as $parameter) {
                             $type = $parameter->getType();
                             $name = $parameter->getName();
+                            $className = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
-                            if ($type && !$type->isBuiltin()) {
-                                $className = $type->getName();
-
+                            if ($className) {
+                                // 1. Если это наследник BaseRequest
                                 if (is_subclass_of($className, \Requests\BaseRequest::class)) {
                                     $methodArgs[] = new $className();
                                 }
+                                // 2. Если это Action (бизнес-логика)
                                 elseif (str_contains($className, 'Actions')) {
                                     $db = Contract::make(DatabaseContract::class);
                                     $userRepo = new UserRepository($db);
                                     $methodArgs[] = new $className($userRepo);
+                                } else {
+                                    $methodArgs[] = null;
                                 }
                             }
+                            // 3. Если это динамический параметр из URL {id}, {slug} и т.д.
                             elseif (isset($urlParams[$name])) {
                                 $methodArgs[] = $urlParams[$name];
+                            }
+                            else {
+                                $methodArgs[] = $parameter->isDefaultValueAvailable()
+                                    ? $parameter->getDefaultValue()
+                                    : null;
                             }
                         }
 
@@ -134,7 +145,7 @@ class Router
      */
     private function checkCsrf(): void
     {
-        $session = Contract::make(\Contracts\SessionContract::class);
+        $session = Contract::make(SessionContract::class);
         $token = $_POST['_csrf'] ?? '';
         $sessionToken = $session->get('_csrf');
 
