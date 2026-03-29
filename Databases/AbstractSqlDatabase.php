@@ -29,7 +29,7 @@ abstract class AbstractSqlDatabase implements DatabaseContract
         try {
             $this->pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         } catch (PDOException $e) {
             throw new Exception("Ошибка подключения к БД: " . $e->getMessage());
@@ -120,4 +120,20 @@ abstract class AbstractSqlDatabase implements DatabaseContract
         }
         return false;
     }
+
+    public function exists(string $table, string $column, mixed $value, mixed $ignoreId = null): bool
+    {
+        // Оборачиваем имена в обратные кавычки для безопасности
+        $sql = "SELECT COUNT(*) as count FROM `{$table}` WHERE `{$column}` = :val";
+        $params = ['val' => $value];
+
+        if ($ignoreId !== null) {
+            $sql .= " AND `id` != :id";
+            $params['id'] = $ignoreId;
+        }
+
+        $result = $this->row($sql, $params);
+        return (int)($result['count'] ?? 0) > 0;
+    }
+
 }
