@@ -121,18 +121,29 @@ abstract class AbstractSqlDatabase implements DatabaseContract
         return false;
     }
 
+    /**
+     * Проверяет существование записи по заданному полю и значению
+     *
+     * @param string $table Имя таблицы
+     * @param string $column Имя колонки
+     * @param mixed $value Проверяемое значение
+     * @param mixed $ignoreId ID для исключения (полезно при обновлении)
+     * @return bool
+     */
     public function exists(string $table, string $column, mixed $value, mixed $ignoreId = null): bool
     {
-        // Оборачиваем имена в обратные кавычки для безопасности
+        // Оборачиваем имена таблицы и колонки в обратные кавычки
         $sql = "SELECT COUNT(*) as count FROM `{$table}` WHERE `{$column}` = :val";
         $params = ['val' => $value];
 
         if ($ignoreId !== null) {
+            // Оборачиваем id в кавычки для единообразия
             $sql .= " AND `id` != :id";
             $params['id'] = $ignoreId;
         }
 
         $result = $this->row($sql, $params);
+
         return (int)($result['count'] ?? 0) > 0;
     }
 
