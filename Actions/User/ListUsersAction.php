@@ -3,10 +3,9 @@
 namespace Actions\User;
 
 use Repositories\UserRepository;
-use Models\UserModel;
 
 /**
- * Экшен для получения списка всех пользователей системы
+ * Экшен получения списка пользователей
  */
 class ListUsersAction
 {
@@ -14,8 +13,16 @@ class ListUsersAction
         private UserRepository $userRepo
     ) {}
 
-    public function execute(): array
+    /**
+     * Позволяет вызывать класс как функцию: $action()
+     *
+     * @return array Данные для передачи в View
+     */
+    public function __invoke(): array
     {
-        return $this->userRepo->all();
+        return [
+            'users' => $this->userRepo->all(),
+            'title' => 'Список пользователей'
+        ];
     }
 }

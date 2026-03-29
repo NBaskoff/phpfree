@@ -3,20 +3,16 @@
 namespace Controllers;
 
 use Actions\User\ListUsersAction;
+use Exception;
 
 class UserController extends BaseController
 {
     /**
-     * Экшен внедряется автоматически через аргументы метода
-     * @throws \Exception
+     * Вывод списка пользователей через вызываемый экшен
+     * @throws Exception
      */
     public function actionIndexGet(ListUsersAction $action): string
     {
-        $users = $action->execute();
-
-        return $this->display('user/index', [
-            'users' => $users,
-            'title' => 'Список из 100 пользователей'
-        ]);
+        return $this->display('user/index', $action());
     }
 }
