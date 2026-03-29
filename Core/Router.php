@@ -3,8 +3,6 @@
 namespace Core;
 
 use Contracts\DatabaseContract;
-use Contracts\SessionContract;
-use Requests\Validations\CsrfRequestValidation;
 use ReflectionMethod;
 use ReflectionClass;
 use Exception;
@@ -84,7 +82,7 @@ class Router
 
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && preg_match($route['pattern'], $url, $matches)) {
-                $this->processRoute($route, $matches);
+                $this->execute($route, $matches);
                 return;
             }
         }
@@ -97,14 +95,8 @@ class Router
      * @param array $matches
      * @return void
      */
-    private function processRoute(array $route, array $matches): void
+    private function execute(array $route, array $matches): void
     {
-        $method = $this->request->method;
-
-        if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'])) {
-            $this->checkCsrf();
-        }
-
         [$controllerName, $methodName] = $route['handler'];
         $urlParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
@@ -113,26 +105,9 @@ class Router
         }
 
         $controller = new $controllerName();
+        $args = $this->resolveArgs($controllerName, $methodName, $urlParams);
 
-        if (!method_exists($controller, $methodName)) {
-            $this->abort(500, "Method $methodName not found in $controllerName");
-        }
-
-        $args = $this->resolveMethodArgs($controllerName, $methodName, $urlParams);
-        call_user_func_array([$controller, $methodName], $args);
-    }
-
-    /**
-     * @return void
-     */
-    private function checkCsrf(): void
-    {
-        $csrfValidator = new CsrfRequestValidation();
-        $token = $this->request->post['_csrf'] ?? '';
-
-        if (!$csrfValidator($token)) {
-            $this->abort(403, $csrfValidator->getMessage('_csrf'));
-        }
+        $controller->{$methodName}(...$args);
     }
 
     /**
@@ -141,33 +116,31 @@ class Router
      * @param array $urlParams
      * @return array
      */
-    private function resolveMethodArgs(string $controller, string $method, array $urlParams): array
+    private function resolveArgs(string $controller, string $method, array $urlParams): array
     {
         $reflection = new ReflectionMethod($controller, $method);
-        $methodArgs = [];
+        $args = [];
 
-        foreach ($reflection->getParameters() as $parameter) {
-            $type = $parameter->getType();
-            $name = $parameter->getName();
+        foreach ($reflection->getParameters() as $param) {
+            $type = $param->getType();
+            $name = $param->getName();
             $className = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
             if ($className) {
-                $methodArgs[] = $this->resolveClassDependency($className);
-            } elseif (isset($urlParams[$name])) {
-                $methodArgs[] = $urlParams[$name];
+                $args[] = $this->resolveDependency($className);
             } else {
-                $methodArgs[] = $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null;
+                $args[] = $urlParams[$name] ?? ($param->isDefaultValueAvailable() ? $param->getDefaultValue() : null);
             }
         }
 
-        return $methodArgs;
+        return $args;
     }
 
     /**
      * @param string $className
      * @return mixed
      */
-    private function resolveClassDependency(string $className): mixed
+    private function resolveDependency(string $className): mixed
     {
         if ($className === Request::class) {
             return $this->request;
@@ -178,7 +151,7 @@ class Router
         }
 
         if (str_contains($className, 'Actions')) {
-            return $this->resolveAction($className);
+            return $this->buildAction($className);
         }
 
         return null;
@@ -188,7 +161,7 @@ class Router
      * @param string $actionClass
      * @return mixed
      */
-    private function resolveAction(string $actionClass): mixed
+    private function buildAction(string $actionClass): mixed
     {
         $reflection = new ReflectionClass($actionClass);
         $constructor = $reflection->getConstructor();
@@ -218,12 +191,8 @@ class Router
     {
         http_response_code($code);
         try {
-            echo View::render("errors/{$code}", [
-                'code' => $code,
-                'message' => $message,
-                'title' => "Ошибка $code"
-            ]);
-        } catch (Exception $e) {
+            echo View::render("errors/{$code}", ['message' => $message]);
+        } catch (Exception) {
             echo "<h1>$code</h1><p>$message</p>";
         }
         exit;
