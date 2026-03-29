@@ -16,11 +16,20 @@ class Router
     /** @var array Реестр маршрутов */
     private array $routes = [];
 
+    /** @var Request Объект текущего запроса */
+    private Request $request;
+
     /**
-     * Загружает маршруты из файла с поддержкой префикса
-     *
-     * @param string $prefix Префикс для URL
-     * @param string $path Путь к файлу маршрутов
+     * @param Request|null $request
+     */
+    public function __construct(?Request $request = null)
+    {
+        $this->request = $request ?? new Request();
+    }
+
+    /**
+     * @param string $prefix
+     * @param string $path
      * @return void
      */
     public function loadRoutes(string $prefix, string $path): void
@@ -48,8 +57,6 @@ class Router
     }
 
     /**
-     * Регистрация маршрута с регулярным выражением
-     *
      * @param string $method
      * @param string $path
      * @param array $handler
@@ -68,14 +75,12 @@ class Router
     }
 
     /**
-     * Основной метод обработки запроса и вызова контроллера
-     *
      * @return void
      */
     public function dispatch(): void
     {
-        $url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $method = strtoupper($_SERVER['REQUEST_METHOD']);
+        $url = $this->request->uri;
+        $method = $this->request->method;
 
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && preg_match($route['pattern'], $url, $matches)) {
@@ -94,18 +99,18 @@ class Router
                         $reflection = new ReflectionMethod($controllerName, $methodName);
                         $methodArgs = [];
 
-                        // Перебираем параметры метода контроллера по порядку
                         foreach ($reflection->getParameters() as $parameter) {
                             $type = $parameter->getType();
                             $name = $parameter->getName();
                             $className = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
                             if ($className) {
-                                // 1. Если это наследник BaseRequest
-                                if (is_subclass_of($className, \Requests\BaseRequest::class)) {
+                                if ($className === Request::class) {
+                                    $methodArgs[] = $this->request;
+                                }
+                                elseif (is_subclass_of($className, \Requests\BaseRequest::class)) {
                                     $methodArgs[] = new $className();
                                 }
-                                // 2. Если это Action (бизнес-логика)
                                 elseif (str_contains($className, 'Actions')) {
                                     $db = Contract::make(DatabaseContract::class);
                                     $userRepo = new UserRepository($db);
@@ -114,7 +119,6 @@ class Router
                                     $methodArgs[] = null;
                                 }
                             }
-                            // 3. Если это динамический параметр из URL {id}, {slug} и т.д.
                             elseif (isset($urlParams[$name])) {
                                 $methodArgs[] = $urlParams[$name];
                             }
@@ -139,14 +143,12 @@ class Router
     }
 
     /**
-     * Валидация CSRF токена
-     *
      * @return void
      */
     private function checkCsrf(): void
     {
         $session = Contract::make(SessionContract::class);
-        $token = $_POST['_csrf'] ?? '';
+        $token = $this->request->post['_csrf'] ?? '';
         $sessionToken = $session->get('_csrf');
 
         if (!$sessionToken || !hash_equals((string)$sessionToken, (string)$token)) {
@@ -155,8 +157,6 @@ class Router
     }
 
     /**
-     * Остановка выполнения с HTTP кодом ошибки
-     *
      * @param int $code
      * @param string $message
      * @return void

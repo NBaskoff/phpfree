@@ -4,6 +4,7 @@ namespace Requests;
 
 use Exception;
 use Core\Validator;
+use Core\Request;
 use Contracts\RuleContract;
 
 /**
@@ -18,19 +19,15 @@ abstract class BaseRequest
     protected array $errors = [];
 
     /**
-     * Конструктор собирает данные из глобальных массивов и запускает проверку
-     *
      * @throws Exception
      */
     public function __construct()
     {
-        // Сбор данных из GET и POST
-        $this->data = array_merge($_GET, $_POST);
+        $request = new Request();
 
-        // Автоматическая XSS-очистка через Validator
+        $this->data = array_merge($request->query, $request->post);
         $this->data = Validator::filter($this->data);
 
-        // Запуск правил, определенных в дочернем классе
         $this->validate();
 
         if (!empty($this->errors)) {
@@ -39,13 +36,11 @@ abstract class BaseRequest
     }
 
     /**
-     * Метод для определения правил в конкретных реквестах
+     * @return void
      */
     abstract protected function validate(): void;
 
     /**
-     * Позволяет получить массив данных, вызвав объект как функцию: $request()
-     *
      * @return array
      */
     public function __invoke(): array
@@ -54,10 +49,9 @@ abstract class BaseRequest
     }
 
     /**
-     * Проверяет поле набором объектов-валидаторов
-     *
-     * @param string $field Ключ поля (например, 'email')
-     * @param array $rules Массив объектов RuleContract
+     * @param string $field
+     * @param array $rules
+     * @return void
      */
     protected function validateField(string $field, array $rules): void
     {
@@ -65,7 +59,6 @@ abstract class BaseRequest
 
         foreach ($rules as $rule) {
             if ($rule instanceof RuleContract) {
-                // Вызов правила через __invoke
                 if (!$rule($value)) {
                     $this->addError($rule->getMessage($field));
                 }
@@ -74,7 +67,8 @@ abstract class BaseRequest
     }
 
     /**
-     * Добавляет текст ошибки в общий список
+     * @param string $msg
+     * @return void
      */
     protected function addError(string $msg): void
     {
@@ -82,7 +76,9 @@ abstract class BaseRequest
     }
 
     /**
-     * Получает значение из отфильтрованных данных
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
      */
     public function get(string $key, mixed $default = null): mixed
     {
