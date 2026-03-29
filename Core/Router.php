@@ -6,6 +6,7 @@ use Contracts\DatabaseContract;
 use Contracts\SessionContract;
 use Repositories\UserRepository;
 use ReflectionMethod;
+use ReflectionClass;
 use Exception;
 
 /**
@@ -84,76 +85,114 @@ class Router
 
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && preg_match($route['pattern'], $url, $matches)) {
-
-                if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH']) && $route['csrf'] === true) {
-                    $this->checkCsrf();
-                }
-
-                [$controllerName, $methodName] = $route['handler'];
-                $urlParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-
-                if (class_exists($controllerName)) {
-                    $controller = new $controllerName();
-
-                    if (method_exists($controller, $methodName)) {
-                        $reflection = new ReflectionMethod($controllerName, $methodName);
-                        $methodArgs = [];
-
-                        foreach ($reflection->getParameters() as $parameter) {
-                            $type = $parameter->getType();
-                            $name = $parameter->getName();
-                            $className = ($type && !$type->isBuiltin()) ? $type->getName() : null;
-
-                            if ($className) {
-                                if ($className === Request::class) {
-                                    $methodArgs[] = $this->request;
-                                }
-                                elseif (is_subclass_of($className, \Requests\BaseRequest::class)) {
-                                    $methodArgs[] = new $className();
-                                }
-                                /** Универсальная сборка Action */
-                                elseif (str_contains($className, 'Actions')) {
-                                    $actionReflection = new \ReflectionClass($className);
-                                    $constructor = $actionReflection->getConstructor();
-                                    $actionArgs = [];
-
-                                    if ($constructor) {
-                                        foreach ($constructor->getParameters() as $constructorParam) {
-                                            $paramType = $constructorParam->getType();
-                                            $repoClassName = ($paramType && !$paramType->isBuiltin()) ? $paramType->getName() : null;
-
-                                            if ($repoClassName) {
-                                                $db = Contract::make(DatabaseContract::class);
-                                                $actionArgs[] = new $repoClassName($db);
-                                            }
-                                        }
-                                    }
-                                    $methodArgs[] = new $className(...$actionArgs);
-                                } else {
-                                    $methodArgs[] = null;
-                                }
-                            }
-                            elseif (isset($urlParams[$name])) {
-                                $methodArgs[] = $urlParams[$name];
-                            }
-                            else {
-                                $methodArgs[] = $parameter->isDefaultValueAvailable()
-                                    ? $parameter->getDefaultValue()
-                                    : null;
-                            }
-                        }
-
-                        call_user_func_array([$controller, $methodName], $methodArgs);
-                        return;
-                    }
-                }
-
-                $this->abort(500, "Method $methodName not found in $controllerName");
+                $this->processRoute($route, $matches);
                 return;
             }
         }
 
         $this->abort(404, "Page not found");
+    }
+
+    /**
+     * @param array $route
+     * @param array $matches
+     * @return void
+     */
+    private function processRoute(array $route, array $matches): void
+    {
+        if (in_array($this->request->method, ['POST', 'PUT', 'DELETE', 'PATCH']) && $route['csrf'] === true) {
+            $this->checkCsrf();
+        }
+
+        [$controllerName, $methodName] = $route['handler'];
+        $urlParams = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+
+        if (!class_exists($controllerName)) {
+            $this->abort(500, "Controller $controllerName not found");
+        }
+
+        $controller = new $controllerName();
+
+        if (!method_exists($controller, $methodName)) {
+            $this->abort(500, "Method $methodName not found in $controllerName");
+        }
+
+        $args = $this->resolveMethodArgs($controllerName, $methodName, $urlParams);
+        call_user_func_array([$controller, $methodName], $args);
+    }
+
+    /**
+     * @param string $controller
+     * @param string $method
+     * @param array $urlParams
+     * @return array
+     */
+    private function resolveMethodArgs(string $controller, string $method, array $urlParams): array
+    {
+        $reflection = new ReflectionMethod($controller, $method);
+        $methodArgs = [];
+
+        foreach ($reflection->getParameters() as $parameter) {
+            $type = $parameter->getType();
+            $name = $parameter->getName();
+            $className = ($type && !$type->isBuiltin()) ? $type->getName() : null;
+
+            if ($className) {
+                $methodArgs[] = $this->resolveClassDependency($className);
+            } elseif (isset($urlParams[$name])) {
+                $methodArgs[] = $urlParams[$name];
+            } else {
+                $methodArgs[] = $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null;
+            }
+        }
+
+        return $methodArgs;
+    }
+
+    /**
+     * @param string $className
+     * @return mixed
+     */
+    private function resolveClassDependency(string $className): mixed
+    {
+        if ($className === Request::class) {
+            return $this->request;
+        }
+
+        if (is_subclass_of($className, \Requests\BaseRequest::class)) {
+            return new $className();
+        }
+
+        if (str_contains($className, 'Actions')) {
+            return $this->resolveAction($className);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $actionClass
+     * @return mixed
+     */
+    private function resolveAction(string $actionClass): mixed
+    {
+        $reflection = new ReflectionClass($actionClass);
+        $constructor = $reflection->getConstructor();
+        $args = [];
+
+        if ($constructor) {
+            foreach ($constructor->getParameters() as $param) {
+                $type = $param->getType();
+                $repoClass = ($type && !$type->isBuiltin()) ? $type->getName() : null;
+
+                if ($repoClass) {
+                    $db = Contract::make(DatabaseContract::class);
+                    $args[] = new $repoClass($db);
+                }
+            }
+        }
+
+        return new $actionClass(...$args);
     }
 
     /**
