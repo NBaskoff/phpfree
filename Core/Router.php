@@ -111,10 +111,24 @@ class Router
                                 elseif (is_subclass_of($className, \Requests\BaseRequest::class)) {
                                     $methodArgs[] = new $className();
                                 }
+                                /** Универсальная сборка Action */
                                 elseif (str_contains($className, 'Actions')) {
-                                    $db = Contract::make(DatabaseContract::class);
-                                    $userRepo = new UserRepository($db);
-                                    $methodArgs[] = new $className($userRepo);
+                                    $actionReflection = new \ReflectionClass($className);
+                                    $constructor = $actionReflection->getConstructor();
+                                    $actionArgs = [];
+
+                                    if ($constructor) {
+                                        foreach ($constructor->getParameters() as $constructorParam) {
+                                            $paramType = $constructorParam->getType();
+                                            $repoClassName = ($paramType && !$paramType->isBuiltin()) ? $paramType->getName() : null;
+
+                                            if ($repoClassName) {
+                                                $db = Contract::make(DatabaseContract::class);
+                                                $actionArgs[] = new $repoClassName($db);
+                                            }
+                                        }
+                                    }
+                                    $methodArgs[] = new $className(...$actionArgs);
                                 } else {
                                     $methodArgs[] = null;
                                 }
