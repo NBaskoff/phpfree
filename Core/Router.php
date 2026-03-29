@@ -2,7 +2,9 @@
 
 namespace Core;
 
-use Contracts\SessionContract;
+use Contracts\DatabaseContract;
+use Repositories\UserRepository;
+use ReflectionMethod;
 use Exception;
 
 /**
@@ -10,18 +12,14 @@ use Exception;
  */
 class Router
 {
-    /**
-     * Список всех зарегистрированных маршрутов
-     * @var array
-     */
+    /** @var array Реестр маршрутов */
     private array $routes = [];
 
     /**
-     * Загружает маршруты из файла с поддержкой префикса.
-     * Теперь корректно обрабатывает и '' и '/' как отсутствие префикса.
+     * Загружает маршруты из файла с поддержкой префикса
      *
-     * @param string $prefix Префикс для URL (например, '/api' или '/')
-     * @param string $path Путь к файлу конфигурации
+     * @param string $prefix Префикс для URL
+     * @param string $path Путь к файлу маршрутов
      * @return void
      */
     public function loadRoutes(string $prefix, string $path): void
@@ -31,22 +29,13 @@ class Router
         }
 
         $routes = require $path;
-
-        // Нормализуем префикс: убираем все слеши по краям
         $prefix = trim($prefix, '/');
-
-        // Если после очистки что-то осталось, добавляем один слеш в начало
         $prefix = $prefix ? '/' . $prefix : '';
 
         foreach ($routes as $url => $methods) {
-            // Убираем слеш в начале URL из файла, чтобы не было двойного при склейке
             $cleanUrl = ltrim($url, '/');
+            $fullUrl = preg_replace('#/+#', '/', $prefix . '/' . $cleanUrl);
 
-            // Склеиваем префикс и чистый URL
-            $fullUrl = $prefix . '/' . $cleanUrl;
-
-            // Финальная очистка: убираем лишние слеши в середине и в конце (кроме корня)
-            $fullUrl = preg_replace('#/+#', '/', $fullUrl);
             if ($fullUrl !== '/') {
                 $fullUrl = rtrim($fullUrl, '/');
             }
@@ -58,7 +47,12 @@ class Router
     }
 
     /**
-     * Регистрация маршрута в системе
+     * Регистрация маршрута с регулярным выражением
+     *
+     * @param string $method
+     * @param string $path
+     * @param array $handler
+     * @return void
      */
     private function addRoute(string $method, string $path, array $handler): void
     {
@@ -73,7 +67,9 @@ class Router
     }
 
     /**
-     * Основной метод запуска: находит соответствие URL и вызывает контроллер
+     * Основной метод обработки запроса и вызова контроллера
+     *
+     * @return void
      */
     public function dispatch(): void
     {
@@ -94,28 +90,30 @@ class Router
                     $controller = new $controllerName();
 
                     if (method_exists($controller, $methodName)) {
-                        $reflection = new \ReflectionMethod($controllerName, $methodName);
+                        $reflection = new ReflectionMethod($controllerName, $methodName);
                         $methodArgs = [];
 
                         foreach ($reflection->getParameters() as $parameter) {
-                            $name = $parameter->getName();
                             $type = $parameter->getType();
+                            $name = $parameter->getName();
 
-                            // Если это класс (например, ListUsersAction)
                             if ($type && !$type->isBuiltin()) {
-                                $methodArgs[] = Contract::make($type->getName());
+                                $className = $type->getName();
+
+                                if (is_subclass_of($className, \Core\Request::class)) {
+                                    $methodArgs[] = new $className();
+                                }
+                                elseif (str_contains($className, 'Actions')) {
+                                    $db = Contract::make(DatabaseContract::class);
+                                    $userRepo = new UserRepository($db);
+                                    $methodArgs[] = new $className($userRepo);
+                                }
                             }
-                            // Если это параметр из URL (например, {id})
                             elseif (isset($urlParams[$name])) {
                                 $methodArgs[] = $urlParams[$name];
                             }
-                            // Значение по умолчанию, если есть
-                            elseif ($parameter->isDefaultValueAvailable()) {
-                                $methodArgs[] = $parameter->getDefaultValue();
-                            }
                         }
 
-                        // Вызываем метод с подготовленными аргументами
                         call_user_func_array([$controller, $methodName], $methodArgs);
                         return;
                     }
@@ -130,46 +128,40 @@ class Router
     }
 
     /**
-     * Валидация CSRF токена через SessionContract
+     * Валидация CSRF токена
      *
      * @return void
      */
     private function checkCsrf(): void
     {
-        /** @var SessionContract $session */
-        $session = Contract::make(SessionContract::class);
+        $session = Contract::make(\Contracts\SessionContract::class);
+        $token = $_POST['_csrf'] ?? '';
+        $sessionToken = $session->get('_csrf');
 
-        $tokenFromPost = $_POST['_csrf'] ?? '';
-        $tokenFromSession = $session->get('_csrf');
-
-        if (!$tokenFromSession || !hash_equals((string)$tokenFromSession, (string)$tokenFromPost)) {
-            $this->abort(403, "Ошибка безопасности: неверный или просроченный CSRF-токен.");
+        if (!$sessionToken || !hash_equals((string)$sessionToken, (string)$token)) {
+            $this->abort(403, "Ошибка безопасности: неверный CSRF-токен.");
         }
     }
 
     /**
-     * Утилита для завершения работы с кодом ошибки и рендерингом шаблона
+     * Остановка выполнения с HTTP кодом ошибки
      *
-     * @param int $code HTTP статус код
-     * @param string $message Сообщение об ошибке
+     * @param int $code
+     * @param string $message
      * @return void
      */
     private function abort(int $code, string $message): void
     {
         http_response_code($code);
-
         try {
-            // Пытаемся отрендерить красивую страницу ошибки templates/errors/404.php
             echo View::render("errors/{$code}", [
-                'code'    => $code,
+                'code' => $code,
                 'message' => $message,
-                'title'   => "Ошибка $code"
+                'title' => "Ошибка $code"
             ]);
         } catch (Exception $e) {
-            // Если шаблона для конкретной ошибки нет, выводим простой текст
             echo "<h1>$code</h1><p>$message</p>";
         }
-
         exit;
     }
 }
