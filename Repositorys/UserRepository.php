@@ -5,15 +5,15 @@ namespace Repositorys;
 use Models\UserModel;
 
 /**
- * Репозиторий для работы с таблицей пользователей
+ * Репозиторий для работы с пользователями и их ролями
  */
 class UserRepository extends BaseRepository
 {
     /**
-     * Находит пользователя по его первичному ключу
+     * Находит пользователя по ID
      *
-     * @param int $id Идентификатор пользователя
-     * @return UserModel|null Объект модели или null, если запись не найдена
+     * @param int $id
+     * @return UserModel|null
      */
     public function find(int $id): ?UserModel
     {
@@ -25,82 +25,95 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Находит пользователя по адресу электронной почты
+     * Получает все роли пользователя через связующую таблицу
      *
-     * @param string $email
-     * @return UserModel|null
+     * @param int $userId
+     * @return array
      */
-    public function findByEmail(string $email): ?UserModel
+    public function getUserRoles(int $userId): array
     {
-        $data = $this->db->row("SELECT * FROM users WHERE email = :email", [
-            'email' => $email
-        ]);
-
-        return $data ? UserModel::fromArray($data) : null;
+        return $this->db->all("
+            SELECT roles.* 
+            FROM roles
+            JOIN user_role ON roles.id = user_role.role_id
+            WHERE user_role.user_id = :userId
+        ", ['userId' => $userId]);
     }
 
     /**
-     * Возвращает список всех пользователей
+     * Проверяет наличие роли у пользователя по её слагу
      *
-     * @return UserModel[] Массив объектов UserModel
+     * @param int $userId
+     * @param string $roleSlug
+     * @return bool
+     */
+    public function hasRole(int $userId, string $roleSlug): bool
+    {
+        $row = $this->db->row("
+            SELECT user_role.user_id 
+            FROM user_role
+            JOIN roles ON user_role.role_id = roles.id
+            WHERE user_role.user_id = :uid AND roles.slug = :slug
+        ", ['uid' => $userId, 'slug' => $roleSlug]);
+
+        return !empty($row);
+    }
+
+    /**
+     * Назначает роль пользователю (игнорирует дубликаты)
+     *
+     * @param int $userId
+     * @param int $roleId
+     * @return bool
+     */
+    public function assignRole(int $userId, int $roleId): bool
+    {
+        // Простая проверка, чтобы не плодить ошибки уникальности
+        $exists = $this->db->row(
+            "SELECT user_id FROM user_role WHERE user_id = :uid AND role_id = :rid",
+            ['uid' => $userId, 'rid' => $roleId]
+        );
+
+        if ($exists) {
+            return true;
+        }
+
+        $stmt = $this->db->query(
+            "INSERT INTO user_role (user_id, role_id) VALUES (:uid, :rid)",
+            ['uid' => $userId, 'rid' => $roleId]
+        );
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Возвращает всех пользователей
+     *
+     * @return UserModel[]
      */
     public function all(): array
     {
         $rows = $this->db->all("SELECT * FROM users ORDER BY id DESC");
-
         return array_map(fn($row) => UserModel::fromArray($row), $rows);
     }
 
     /**
-     * Сохраняет данные нового пользователя в базу
+     * Создает нового пользователя с хешированием пароля
      *
-     * @param array $data Данные пользователя (name, email)
-     * @return int ID созданной записи
+     * @param array $data
+     * @return int
      */
     public function store(array $data): int
     {
         $this->db->query(
-            "INSERT INTO users (name, email, created_at) VALUES (:name, :email, NOW())",
+            "INSERT INTO users (name, email, password, created_at) VALUES (:name, :email, :password, NOW())",
             [
-                'name'  => $data['name'],
-                'email' => $data['email']
+                'name'     => $data['name'],
+                'email'    => $data['email'],
+                'password' => password_hash($data['password'], PASSWORD_DEFAULT)
             ]
         );
 
         return (int)$this->db->lastInsertId();
-    }
-
-    /**
-     * Обновляет данные существующего пользователя
-     *
-     * @param int $id
-     * @param array $data
-     * @return bool
-     */
-    public function update(int $id, array $data): bool
-    {
-        $stmt = $this->db->query(
-            "UPDATE users SET name = :name, email = :email, updated_at = NOW() WHERE id = :id",
-            [
-                'id'    => $id,
-                'name'  => $data['name'],
-                'email' => $data['email']
-            ]
-        );
-
-        return $stmt->rowCount() > 0;
-    }
-
-    /**
-     * Удаляет пользователя из базы данных
-     *
-     * @param int $id
-     * @return bool
-     */
-    public function delete(int $id): bool
-    {
-        $stmt = $this->db->query("DELETE FROM users WHERE id = :id", ['id' => $id]);
-
-        return $stmt->rowCount() > 0;
     }
 }
