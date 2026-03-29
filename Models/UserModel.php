@@ -7,33 +7,31 @@ namespace Models;
  */
 class UserModel extends BaseModel
 {
-    /** @var int Идентификатор пользователя */
     public int $id;
-
-    /** @var string Имя пользователя */
     public string $name;
-
-    /** @var string Электронная почта */
     public string $email;
-
-    /** @var string|null Дата регистрации */
     public ?string $created_at = null;
-
-    /** @var string|null Дата последнего обновления */
     public ?string $updated_at = null;
 
     /**
-     * Пример метода бизнес-логики: проверка административных прав по домену
+     * Массив объектов или строк с названиями ролей (заполняется отдельно)
+     * @var array
+     */
+    public array $roles = [];
+
+    /**
+     * Проверяет, назначена ли пользователю конкретная роль
      *
+     * @param string $slug Код роли (admin, user, editor)
      * @return bool
      */
-    public function isAdmin(): bool
+    public function hasRole(string $slug): bool
     {
-        return str_ends_with($this->email, '@admin.com');
+        return in_array($slug, array_column($this->roles, 'slug'));
     }
 
     /**
-     * Форматирует дату создания для вывода в интерфейсе
+     * Форматирует дату регистрации
      *
      * @return string
      */
