@@ -100,7 +100,7 @@ class Router
                             if ($type && !$type->isBuiltin()) {
                                 $className = $type->getName();
 
-                                if (is_subclass_of($className, \Core\Request::class)) {
+                                if (is_subclass_of($className, \Requests\BaseRequest::class)) {
                                     $methodArgs[] = new $className();
                                 }
                                 elseif (str_contains($className, 'Actions')) {
