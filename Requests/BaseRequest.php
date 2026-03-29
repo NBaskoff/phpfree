@@ -3,7 +3,6 @@
 namespace Requests;
 
 use Exception;
-use Core\Validator;
 use Core\Request;
 use Contracts\RuleContract;
 
@@ -25,14 +24,33 @@ abstract class BaseRequest
     {
         $request = new Request();
 
-        $this->data = array_merge($request->query, $request->post);
-        $this->data = Validator::filter($this->data);
+        $rawParams = array_merge($request->query, $request->post);
+        $this->data = $this->filter($rawParams);
 
         $this->validate();
 
         if (!empty($this->errors)) {
             throw new Exception("Ошибка валидации: " . implode('; ', $this->errors));
         }
+    }
+
+    /**
+     * Рекурсивная очистка данных
+     *
+     * @param mixed $data
+     * @return mixed
+     */
+    private function filter(mixed $data): mixed
+    {
+        if (is_array($data)) {
+            return array_map([$this, 'filter'], $data);
+        }
+
+        if (is_string($data)) {
+            return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+        }
+
+        return $data;
     }
 
     /**
