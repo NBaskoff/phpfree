@@ -9,7 +9,7 @@ use PDOException;
 use Exception;
 
 /**
- * Базовый класс для всех SQL-совместимых баз данных (PDO)
+ * Базовая реализация SQL-хранилища на основе PDO
  */
 abstract class AbstractSqlDatabase implements DatabaseContract
 {
@@ -17,11 +17,11 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     protected PDO $pdo;
 
     /**
-     * Создает подключение к базе данных с общими настройками
+     * Инициализирует соединение с базой данных
      *
-     * @param string $dsn Строка подключения
-     * @param string $user Пользователь
-     * @param string $pass Пароль
+     * @param string $dsn
+     * @param string $user
+     * @param string $pass
      * @throws Exception
      */
     protected function connect(string $dsn, string $user, string $pass): void
@@ -30,7 +30,6 @@ abstract class AbstractSqlDatabase implements DatabaseContract
             $this->pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
-                //PDO::ATTR_ERR_MODE           => PDO::ERR_MODE_EXCEPTION,
             ]);
         } catch (PDOException $e) {
             throw new Exception("Ошибка подключения к БД: " . $e->getMessage());
@@ -38,7 +37,9 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
-     * Выполняет SQL-запрос и возвращает объект стейтмента
+     * @param string $sql
+     * @param array $params
+     * @return PDOStatement
      */
     public function query(string $sql, array $params = []): PDOStatement
     {
@@ -48,7 +49,9 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
-     * Получает одну строку из результата запроса
+     * @param string $sql
+     * @param array $params
+     * @return array|false
      */
     public function row(string $sql, array $params = []): array|false
     {
@@ -56,7 +59,9 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
-     * Получает все строки из результата запроса
+     * @param string $sql
+     * @param array $params
+     * @return array
      */
     public function all(string $sql, array $params = []): array
     {
@@ -64,14 +69,35 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
-     * Возвращает ID последней вставленной записи
+     * @param string|null $name
+     * @return string|false
      */
     public function lastInsertId(?string $name = null): string|false
     {
         return $this->pdo->lastInsertId($name);
     }
 
-    public function beginTransaction(): bool { return $this->pdo->beginTransaction(); }
-    public function commit(): bool { return $this->pdo->commit(); }
-    public function rollBack(): bool { return $this->pdo->rollBack(); }
+    /**
+     * @return bool
+     */
+    public function beginTransaction(): bool
+    {
+        return $this->pdo->beginTransaction();
+    }
+
+    /**
+     * @return bool
+     */
+    public function commit(): bool
+    {
+        return $this->pdo->commit();
+    }
+
+    /**
+     * @return bool
+     */
+    public function rollBack(): bool
+    {
+        return $this->pdo->rollBack();
+    }
 }
