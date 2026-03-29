@@ -1,6 +1,6 @@
 <?php
 
-namespace Repositorys;
+namespace Repositories;
 
 use Core\Contract;
 use Contracts\DatabaseContract;

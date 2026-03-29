@@ -1,6 +1,6 @@
 <?php
 
-namespace Repositorys;
+namespace Repositories;
 
 use Models\UserModel;
 
@@ -108,8 +108,8 @@ class UserRepository extends BaseRepository
         $this->db->query(
             "INSERT INTO users (name, email, password, created_at) VALUES (:name, :email, :password, NOW())",
             [
-                'name'     => $data['name'],
-                'email'    => $data['email'],
+                'name' => $data['name'],
+                'email' => $data['email'],
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT)
             ]
         );
