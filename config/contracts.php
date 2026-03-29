@@ -10,6 +10,7 @@ return [
     'singletons' => [
         // Передаем строку напрямую
         DatabaseContract::class => $database,
+        \Contracts\SessionContract::class => \Core\Session::class
     ],
     'bindings' => []
 ];
