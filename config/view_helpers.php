@@ -9,4 +9,5 @@ return [
     'csrf' => \ViewHelpers\CsrfViewHelper::class,
     // Пример кастомного хелпера
     // 'format_price' => \ViewHelpers\FormatPriceHelper::class,
+    'date' => \ViewHelpers\DateViewHelper::class,
 ];

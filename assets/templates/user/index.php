@@ -32,7 +32,7 @@
 					<i style="color: gray;">нет ролей</i>
 				<?php endif; ?>
 			</td>
-			<td><?= $user->getFormattedDate() ?></td>
+			<td><?= vh_date($user->created_at) ?></td>
 		</tr>
 	<?php endforeach; ?>
 	</tbody>

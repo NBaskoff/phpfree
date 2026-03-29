@@ -38,14 +38,4 @@ class UserModel extends BaseModel
     {
         return in_array($slug, array_column($this->roles, 'slug'));
     }
-
-    /**
-     * Форматирует дату создания для вывода в интерфейсе
-     *
-     * @return string
-     */
-    public function getFormattedDate(): string
-    {
-        return $this->created_at ? date('d.m.Y H:i', strtotime($this->created_at)) : 'Не указана';
-    }
 }
