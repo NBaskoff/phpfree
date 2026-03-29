@@ -2,16 +2,25 @@
 
 namespace Requests;
 
-use Core\Contract;
 use Contracts\DatabaseContract;
+use Core\Contract;
 use Requests\Validations\RequiredRequestValidation;
 use Requests\Validations\EmailRequestValidation;
+use Requests\Validations\MinLengthRequestValidation;
 use Requests\Validations\UniqueRequestValidation;
 
+/**
+ * Валидация данных регистрации
+ */
 class RegisterUserRequest extends BaseRequest
 {
     protected function validate(): void
     {
+        $this->validateField('name', [
+            new RequiredRequestValidation(),
+            new MinLengthRequestValidation(2)
+        ]);
+
         // Получаем БД только для этого правила
         $db = Contract::make(DatabaseContract::class);
 
