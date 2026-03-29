@@ -19,9 +19,9 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     /**
      * Инициализирует соединение с базой данных
      *
-     * @param string $dsn
-     * @param string $user
-     * @param string $pass
+     * @param string $dsn Строка подключения
+     * @param string $user Имя пользователя
+     * @param string $pass Пароль
      * @throws Exception
      */
     protected function connect(string $dsn, string $user, string $pass): void
@@ -37,8 +37,10 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
-     * @param string $sql
-     * @param array $params
+     * Подготавливает и выполняет SQL запрос
+     *
+     * @param string $sql SQL текст
+     * @param array $params Параметры для подстановки
      * @return PDOStatement
      */
     public function query(string $sql, array $params = []): PDOStatement
@@ -49,6 +51,8 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
+     * Получает одну строку результата
+     *
      * @param string $sql
      * @param array $params
      * @return array|false
@@ -59,6 +63,8 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
+     * Получает все строки результата
+     *
      * @param string $sql
      * @param array $params
      * @return array
@@ -69,7 +75,9 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
-     * @param string|null $name
+     * Возвращает ID последней вставленной записи
+     *
+     * @param string|null $name Имя последовательности (для Postgres)
      * @return string|false
      */
     public function lastInsertId(?string $name = null): string|false
@@ -78,26 +86,38 @@ abstract class AbstractSqlDatabase implements DatabaseContract
     }
 
     /**
+     * Начало транзакции с проверкой, не запущена ли она уже
+     *
      * @return bool
      */
     public function beginTransaction(): bool
     {
-        return $this->pdo->beginTransaction();
+        return !$this->pdo->inTransaction() ? $this->pdo->beginTransaction() : true;
     }
 
     /**
+     * Подтверждение транзакции с проверкой её активности
+     *
      * @return bool
      */
     public function commit(): bool
     {
-        return $this->pdo->commit();
+        if ($this->pdo->inTransaction()) {
+            return $this->pdo->commit();
+        }
+        return false;
     }
 
     /**
+     * Откат транзакции с проверкой её активности
+     *
      * @return bool
      */
     public function rollBack(): bool
     {
-        return $this->pdo->rollBack();
+        if ($this->pdo->inTransaction()) {
+            return $this->pdo->rollBack();
+        }
+        return false;
     }
 }
