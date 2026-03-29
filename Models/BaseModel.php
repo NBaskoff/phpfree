@@ -3,62 +3,74 @@
 namespace Models;
 
 use ReflectionClass;
-use ReflectionProperty;
+use ReflectionNamedType;
 
 /**
- * Базовая модель с автоматическим маппингом и приведением типов
+ * Базовая модель с автоматическим маппингом через конструктор
  */
 abstract class BaseModel
 {
     /**
-     * Создает экземпляр модели из массива данных БД
+     * Создает экземпляр модели из массива данных
      *
-     * @param array $data Данные из PDO (обычно все значения - строки)
+     * @param array $data
      * @return static
      */
     public static function fromArray(array $data): static
     {
-        $instance = new static();
-        $reflection = new ReflectionClass($instance);
+        $reflection = new ReflectionClass(static::class);
+        $constructor = $reflection->getConstructor();
 
-        foreach ($data as $key => $value) {
-            // Проверяем, существует ли такое свойство в классе модели
-            if (!property_exists($instance, $key)) {
-                continue;
+        if (!$constructor) {
+            $instance = new static();
+            foreach ($data as $key => $value) {
+                if (property_exists($instance, $key)) {
+                    $instance->{$key} = $value;
+                }
             }
-
-            $property = new ReflectionProperty($instance, $key);
-            $type = $property->getType();
-
-            // Если тип не указан, записываем как есть
-            if (!$type instanceof \ReflectionNamedType) {
-                $instance->{$key} = $value;
-                continue;
-            }
-
-            $typeName = $type->getName();
-
-            // Если значение NULL и тип позволяет (nullable), записываем NULL
-            if ($value === null && $type->allowsNull()) {
-                $instance->{$key} = null;
-                continue;
-            }
-
-            // Автоматическое приведение типов (Маппинг)
-            $instance->{$key} = match ($typeName) {
-                'int'    => (int)$value,
-                'float'  => (float)$value,
-                'bool'   => filter_var($value, FILTER_VALIDATE_BOOLEAN),
-                'string' => (string)$value,
-                default  => $value,
-            };
+            return $instance;
         }
 
-        return $instance;
+        $args = [];
+        foreach ($constructor->getParameters() as $param) {
+            $name = $param->getName();
+            $value = $data[$name] ?? ($param->isDefaultValueAvailable() ? $param->getDefaultValue() : null);
+
+            $type = $param->getType();
+            if ($type instanceof ReflectionNamedType) {
+                $args[] = self::cast($value, $type);
+            } else {
+                $args[] = $value;
+            }
+        }
+
+        return new static(...$args);
     }
 
     /**
-     * Преобразует объект модели обратно в массив
+     * Приведение типов на основе Reflection
+     *
+     * @param mixed $value
+     * @param ReflectionNamedType $type
+     * @return mixed
+     */
+    private static function cast(mixed $value, ReflectionNamedType $type): mixed
+    {
+        if ($value === null && $type->allowsNull()) {
+            return null;
+        }
+
+        return match ($type->getName()) {
+            'int'    => (int)$value,
+            'float'  => (float)$value,
+            'bool'   => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            'string' => (string)$value,
+            default  => $value,
+        };
+    }
+
+    /**
+     * Преобразует модель в массив
      *
      * @return array
      */
