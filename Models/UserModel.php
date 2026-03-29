@@ -7,22 +7,31 @@ namespace Models;
  */
 class UserModel extends BaseModel
 {
+    /** @var int Идентификатор пользователя */
     public int $id;
+
+    /** @var string Имя пользователя */
     public string $name;
+
+    /** @var string Электронная почта */
     public string $email;
+
+    /** @var string|null Дата регистрации */
     public ?string $created_at = null;
+
+    /** @var string|null Дата последнего обновления */
     public ?string $updated_at = null;
 
     /**
-     * Массив объектов или строк с названиями ролей (заполняется отдельно)
+     * Список ролей пользователя (заполняется через Репозиторий)
      * @var array
      */
     public array $roles = [];
 
     /**
-     * Проверяет, назначена ли пользователю конкретная роль
+     * Проверяет наличие роли в загруженном массиве ролей модели
      *
-     * @param string $slug Код роли (admin, user, editor)
+     * @param string $slug Слог роли (admin, user, etc)
      * @return bool
      */
     public function hasRole(string $slug): bool
@@ -31,7 +40,7 @@ class UserModel extends BaseModel
     }
 
     /**
-     * Форматирует дату регистрации
+     * Форматирует дату создания для вывода в интерфейсе
      *
      * @return string
      */

@@ -25,7 +25,24 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Получает все роли пользователя через связующую таблицу
+     * Находит пользователя и сразу подгружает его роли в объект модели
+     *
+     * @param int $id
+     * @return UserModel|null
+     */
+    public function findWithRoles(int $id): ?UserModel
+    {
+        $user = $this->find($id);
+
+        if ($user) {
+            $user->roles = $this->getUserRoles($id);
+        }
+
+        return $user;
+    }
+
+    /**
+     * Получает все роли пользователя из базы данных
      *
      * @param int $userId
      * @return array
@@ -41,7 +58,7 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Проверяет наличие роли у пользователя по её слагу
+     * Прямая проверка наличия роли в базе данных (без загрузки модели)
      *
      * @param int $userId
      * @param string $roleSlug
@@ -60,7 +77,7 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Назначает роль пользователю (игнорирует дубликаты)
+     * Назначает роль пользователю
      *
      * @param int $userId
      * @param int $roleId
@@ -68,7 +85,6 @@ class UserRepository extends BaseRepository
      */
     public function assignRole(int $userId, int $roleId): bool
     {
-        // Простая проверка, чтобы не плодить ошибки уникальности
         $exists = $this->db->row(
             "SELECT user_id FROM user_role WHERE user_id = :uid AND role_id = :rid",
             ['uid' => $userId, 'rid' => $roleId]
@@ -98,7 +114,7 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Создает нового пользователя с хешированием пароля
+     * Создает нового пользователя
      *
      * @param array $data
      * @return int
@@ -108,8 +124,8 @@ class UserRepository extends BaseRepository
         $this->db->query(
             "INSERT INTO users (name, email, password, created_at) VALUES (:name, :email, :password, NOW())",
             [
-                'name' => $data['name'],
-                'email' => $data['email'],
+                'name'     => $data['name'],
+                'email'    => $data['email'],
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT)
             ]
         );
