@@ -2,7 +2,6 @@
 
 namespace Controllers;
 
-use Core\Contract;
 use Actions\User\ListUsersAction;
 
 /**
@@ -12,20 +11,15 @@ class UserController extends BaseController
 {
     /**
      * Отображает страницу со списком всех пользователей
-     *
-     * @return string|void
      */
     public function actionIndexGet()
     {
-        // Создаем экшен через контейнер (чтобы сработал Auto-wiring для конструктора)
-        $action = Contract::make(ListUsersAction::class);
+        // Просто создаем экшен напрямую через new
+        $action = new ListUsersAction();
 
-        // Получаем список моделей UserModel
-        $users = $action->execute();
-
-        // Рендерим шаблон assets/templates/user/index.php
+        // Получаем данные и выводим
         return $this->display('user/index', [
-            'users' => $users,
+            'users' => $action->execute(),
             'title' => 'Список пользователей'
         ]);
     }
