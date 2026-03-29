@@ -17,11 +17,11 @@ class Router
     private array $routes = [];
 
     /**
-     * Загружает маршруты из файла.
-     * Теперь префикс — первый аргумент.
+     * Загружает маршруты из файла с поддержкой префикса.
+     * Теперь корректно обрабатывает и '' и '/' как отсутствие префикса.
      *
-     * @param string $prefix Префикс для URL (например, '/api')
-     * @param string $path Путь к файлу конфига
+     * @param string $prefix Префикс для URL (например, '/api' или '/')
+     * @param string $path Путь к файлу конфигурации
      * @return void
      */
     public function loadRoutes(string $prefix, string $path): void
@@ -32,15 +32,20 @@ class Router
 
         $routes = require $path;
 
-        // Нормализуем префикс: убираем лишние слеши и добавляем один в начало
+        // Нормализуем префикс: убираем все слеши по краям
         $prefix = trim($prefix, '/');
+
+        // Если после очистки что-то осталось, добавляем один слеш в начало
         $prefix = $prefix ? '/' . $prefix : '';
 
         foreach ($routes as $url => $methods) {
-            // Формируем полный URL
-            $fullUrl = $prefix . '/' . ltrim($url, '/');
+            // Убираем слеш в начале URL из файла, чтобы не было двойного при склейке
+            $cleanUrl = ltrim($url, '/');
 
-            // Очищаем от двойных слешей и убираем лишний слеш в конце (кроме корня)
+            // Склеиваем префикс и чистый URL
+            $fullUrl = $prefix . '/' . $cleanUrl;
+
+            // Финальная очистка: убираем лишние слеши в середине и в конце (кроме корня)
             $fullUrl = preg_replace('#/+#', '/', $fullUrl);
             if ($fullUrl !== '/') {
                 $fullUrl = rtrim($fullUrl, '/');
