@@ -4,7 +4,7 @@ namespace Core;
 
 use Contracts\DatabaseContract;
 use Contracts\SessionContract;
-use Repositories\UserRepository;
+use Requests\Validations\CsrfRequestValidation;
 use ReflectionMethod;
 use ReflectionClass;
 use Exception;
@@ -70,8 +70,7 @@ class Router
         $this->routes[] = [
             'method'  => strtoupper($method),
             'pattern' => $pattern,
-            'handler' => $handler,
-            'csrf'    => $handler['csrf'] ?? true
+            'handler' => $handler
         ];
     }
 
@@ -100,7 +99,9 @@ class Router
      */
     private function processRoute(array $route, array $matches): void
     {
-        if (in_array($this->request->method, ['POST', 'PUT', 'DELETE', 'PATCH']) && $route['csrf'] === true) {
+        $method = $this->request->method;
+
+        if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'])) {
             $this->checkCsrf();
         }
 
@@ -119,6 +120,19 @@ class Router
 
         $args = $this->resolveMethodArgs($controllerName, $methodName, $urlParams);
         call_user_func_array([$controller, $methodName], $args);
+    }
+
+    /**
+     * @return void
+     */
+    private function checkCsrf(): void
+    {
+        $csrfValidator = new CsrfRequestValidation();
+        $token = $this->request->post['_csrf'] ?? '';
+
+        if (!$csrfValidator($token)) {
+            $this->abort(403, $csrfValidator->getMessage('_csrf'));
+        }
     }
 
     /**
@@ -193,20 +207,6 @@ class Router
         }
 
         return new $actionClass(...$args);
-    }
-
-    /**
-     * @return void
-     */
-    private function checkCsrf(): void
-    {
-        $session = Contract::make(SessionContract::class);
-        $token = $this->request->post['_csrf'] ?? '';
-        $sessionToken = $session->get('_csrf');
-
-        if (!$sessionToken || !hash_equals((string)$sessionToken, (string)$token)) {
-            $this->abort(403, "Ошибка безопасности: неверный CSRF-токен.");
-        }
     }
 
     /**
