@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+use Core\Path;
+use Core\Autoloader;
+use Core\Env;
+use Core\Contract;
+
+// 1. Инициализация путей
+require_once __DIR__ . '/Core/Path.php';
+Path::initFromPublic(__DIR__ . '/public');
+
+// 2. Автозагрузка и окружение
+require_once Path::root('Core/Autoloader.php');
+Autoloader::register();
+
+require_once Path::root('Core/Env.php');
+Env::load(Path::root('.env'));
+
+// 3. Загрузка конфигураций контрактов
+Contract::loadConfig(Path::config('contracts.php'));
+
+// 4. Запуск ядра
+$kernel = new \Commands\ConsoleKernel();
+$kernel->handle($argv);
