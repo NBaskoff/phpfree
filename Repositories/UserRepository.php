@@ -132,4 +132,39 @@ class UserRepository extends BaseRepository
 
         return (int)$this->db->lastInsertId();
     }
+
+    /**
+     * Обогащает модели пользователей их ролями через передачу по ссылке
+     *
+     * @param \Models\UserModel[] &$users Массив объектов UserModel, передаваемый по ссылке
+     */
+    public function getUsersRoles(array &$users): void // Изменяем оригинал массива объектов
+    {
+        if (empty($users)) return; // Выходим, если список пуст
+
+        $userIds = array_map(fn($u) => $u->id, $users); // Извлекаем ID из моделей (PHP 8.4)
+        $placeholders = implode(',', array_fill(0, count($userIds), '?')); // Готовим плейсхолдеры ?,?,?
+
+        // Один запрос для получения всех ролей по списку ID пользователей
+        $rows = $this->db->all("
+        SELECT roles.*, user_role.user_id 
+        FROM roles
+        JOIN user_role ON roles.id = user_role.role_id
+        WHERE user_role.user_id IN ($placeholders)
+    ", $userIds);
+
+        $rolesMap = []; // Группируем роли по пользователям
+        foreach ($rows as $row) {
+            $uid = $row['user_id']; // ID владельца роли
+            unset($row['user_id']); // Удаляем техническое поле user_id
+            $rolesMap[$uid][] = $row; // Складываем роль в карту соответствия
+        }
+
+        foreach ($users as $user) {
+            // Записываем массив ролей в свойство объекта UserModel
+            $user->roles = $rolesMap[$user->id] ?? []; // Если ролей нет — пустой массив
+        }
+    }
+
+
 }

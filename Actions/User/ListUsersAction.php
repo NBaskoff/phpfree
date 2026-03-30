@@ -20,9 +20,7 @@ class ListUsersAction
     {
         $userRepository = new UserRepository();
         $users = $userRepository->all();
-        foreach ($users as $user) {
-            $user->roles = $userRepository->getUserRoles($user->id);
-        }
+        $userRepository->getUsersRoles($users);
 
         return [
             'users' => $users,
