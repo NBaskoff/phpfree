@@ -4,11 +4,9 @@
 use Core\App;
 use Commands\ConsoleKernel;
 
-require_once __DIR__ . '/Core/App.php';
+require_once __DIR__ . '/Core/App.php'; // Подключение ядра
 
-// Инициализируем окружение (указываем путь к public)
-App::init(__DIR__ . '/public');
+App::init(); // Инициализация (путь вычислится автоматически относительно Core)
 
-// Запускаем консольное ядро
-$kernel = new ConsoleKernel();
-$kernel->handle($argv);
+$kernel = new ConsoleKernel(); // Создание консольного ядра
+$kernel->handle($argv); // Обработка аргументов командной строки

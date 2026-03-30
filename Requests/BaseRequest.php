@@ -6,100 +6,42 @@ use Exception;
 use Core\Request;
 use Contracts\RuleContract;
 
-/**
- * Абстрактный базовый класс для всех запросов приложения
- */
 abstract class BaseRequest
 {
-    /** @var array */
-    protected array $data = [];
+    protected array $data = []; // Данные
+    protected array $errors = []; // Ошибки
 
-    /** @var array */
-    protected array $errors = [];
-
-    /**
-     * @throws Exception
-     */
-    public function __construct()
+    public function __construct(Request $request) // Принимаем Request из Resolver
     {
-        $this->prepareData(new Request());
-        $this->validate();
-
-        if (!empty($this->errors)) {
-            throw new Exception("Ошибка валидации: " . implode('; ', $this->errors));
-        }
+        $this->prepareData($request); // Подготовка
+        $this->validate(); // Валидация
+        if (!empty($this->errors)) throw new Exception("Ошибка валидации: " . implode('; ', $this->errors)); // Выброс исключения
     }
 
-    /**
-     * @param Request $request
-     * @return void
-     */
     protected function prepareData(Request $request): void
     {
-        $raw = array_merge($request->query, $request->post);
-        $this->data = $this->sanitize($raw);
+        $this->data = $this->sanitize([...$request->query, ...$request->post]); // Слияние и очистка
     }
 
-    /**
-     * @return void
-     */
-    abstract protected function validate(): void;
+    abstract protected function validate(): void; // Метод валидации
 
-    /**
-     * @param mixed $data
-     * @return mixed
-     */
     protected function sanitize(mixed $data): mixed
     {
-        if (is_array($data)) {
-            return array_map([$this, 'sanitize'], $data);
-        }
-
-        return is_string($data) ? htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8') : $data;
+        if (is_array($data)) return array_map([$this, 'sanitize'], $data); // Рекурсия
+        return is_string($data) ? htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8') : $data; // Очистка
     }
 
-    /**
-     * @param string $field
-     * @param array $rules
-     * @return void
-     */
     protected function validateField(string $field, array $rules): void
     {
-        $value = $this->get($field);
-
+        $value = $this->get($field); // Значение
         foreach ($rules as $rule) {
-            if ($rule instanceof RuleContract) {
-                if (!$rule($value)) {
-                    $this->addError($rule->getMessage($field));
-                }
-            }
+            if ($rule instanceof RuleContract && !$rule($value)) $this->addError($rule->getMessage($field)); // Проверка правила
         }
     }
 
-    /**
-     * @param string $msg
-     * @return void
-     */
-    protected function addError(string $msg): void
-    {
-        $this->errors[] = $msg;
-    }
+    protected function addError(string $msg): void { $this->errors[] = $msg; } // Добавление ошибки
 
-    /**
-     * @return array
-     */
-    public function __invoke(): array
-    {
-        return $this->data;
-    }
+    public function __invoke(): array { return $this->data; } // Данные через вызов объекта
 
-    /**
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
-     */
-    public function get(string $key, mixed $default = null): mixed
-    {
-        return $this->data[$key] ?? $default;
-    }
+    public function get(string $key, mixed $default = null): mixed { return $this->data[$key] ?? $default; } // Получение поля
 }
