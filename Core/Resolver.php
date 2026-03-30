@@ -27,9 +27,9 @@ class Resolver
 
     public function resolveDependency(string $className): mixed
     {
-        if ($className === Request::class) return new Request(); // Создание Request
-        if (is_subclass_of($className, \Requests\BaseRequest::class)) return new $className(); // Создание валидаторов
-        return $this->autoWire($className); // Автоматическая сборка через конструктор
+        if ($className === Request::class) return new Request(); // Request на лету
+        if (is_subclass_of($className, \Requests\BaseRequest::class)) return new $className(); // Валидаторы
+        return $this->autoWire($className);
     }
 
     private function autoWire(string $concrete): object
