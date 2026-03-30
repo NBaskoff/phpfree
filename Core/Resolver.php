@@ -9,9 +9,7 @@ use Exception;
 
 class Resolver
 {
-    public function __construct(private readonly Request $request) {} // Внедрение Request (PHP 8.4)
-
-    public function getRequest(): Request { return $this->request; } // Получение запроса для Роутера
+    public function __construct() {} // Конструктор теперь пустой
 
     public function resolveMethodArgs(string $controller, string $method, array $urlParams): array
     {
@@ -20,17 +18,16 @@ class Resolver
         foreach ($reflection->getParameters() as $param) {
             $type = $param->getType(); // Тип параметра
             if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) $args[] = Contract::make($type->getName()); // Разрешение через Contract
-            else $args[] = $urlParams[$param->getName()] ?? ($param->isDefaultValueAvailable() ? $param->getDefaultValue() : null); // Значение или дефолт
+            else $args[] = $urlParams[$param->getName()] ?? ($param->isDefaultValueAvailable() ? $param->getDefaultValue() : null); // Данные из URL или дефолт
         }
-        return $args; // Возврат аргументов
+        return $args; // Возврат собранных аргументов
     }
 
     public function resolveDependency(string $className): mixed
     {
-        if ($className === Request::class) return $this->request; // Прямая отдача Request
-        if (is_subclass_of($className, \Requests\BaseRequest::class)) return new $className(); // Создание BaseRequest
-        if (str_contains($className, 'Actions')) return $this->buildAction($className); // Сборка экшенов
-        return $this->autoWire($className); // Универсальный Auto-wiring
+        if ($className === Request::class) return new Request(); // Создаем Request на лету при запросе
+        if (is_subclass_of($className, \Requests\BaseRequest::class)) return new $className(); // Создание валидаторов
+        return $this->autoWire($className); // Автоматическая сборка
     }
 
     private function autoWire(string $concrete): object
@@ -38,17 +35,8 @@ class Resolver
         $reflection = new ReflectionClass($concrete); // Рефлексия класса
         if (!$reflection->isInstantiable()) throw new Exception("Класс [{$concrete}] не инстанцируем"); // Проверка
         $constructor = $reflection->getConstructor(); // Получение конструктора
-        if (!$constructor) return new $concrete(); // Создание без конструктора
-        $dependencies = array_map(fn($p) => Contract::make($p->getType()->getName()), $constructor->getParameters()); // Рекурсивная сборка зависимостей
-        return $reflection->newInstanceArgs($dependencies); // Создание с аргументами
-    }
-
-    private function buildAction(string $actionClass): mixed
-    {
-        $reflection = new ReflectionClass($actionClass); // Рефлексия экшена
-        $constructor = $reflection->getConstructor(); // Конструктор экшена
-        $args = []; // Аргументы
-        if ($constructor) foreach ($constructor->getParameters() as $p) $args[] = Contract::make($p->getType()->getName()); // Сборка аргументов через Contract
-        return new $actionClass(...$args); // Возврат экшена
+        if (!$constructor) return new $concrete(); // Создание без аргументов
+        $dependencies = array_map(fn($p) => Contract::make($p->getType()->getName()), $constructor->getParameters()); // Рекурсия через Contract
+        return $reflection->newInstanceArgs($dependencies); // Создание с зависимостями
     }
 }

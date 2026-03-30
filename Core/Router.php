@@ -10,10 +10,10 @@ class Router
     private Request $request; // Объект запроса
     private Resolver $resolver; // Объект резолвера
 
-    public function __construct() // Пустой конструктор (без аргументов)
+    public function __construct()
     {
-        $this->request = new Request(); // Прямое создание запроса
-        $this->resolver = new Resolver($this->request); // Прямое создание резолвера
+        $this->resolver = new Resolver(); // Прямое создание без зависимостей
+        $this->request = new Request(); // Самостоятельное создание запроса
     }
 
     public function loadRoutes(string $prefix, string $path): void

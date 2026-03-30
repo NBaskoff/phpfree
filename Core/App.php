@@ -12,9 +12,6 @@ class App
         Autoloader::register(); // Регистрация
         require_once Path::root('Core/Env.php'); // Окружение
         Env::load(Path::root('.env')); // Загрузка .env
-        $request = new Request(); // Системный запрос
-        $resolver = new Resolver($request); // Системный резолвер
-        Contract::setResolver($resolver); // Привязка к Contract
         Contract::loadConfig(Path::configs('contracts.php')); // Конфиг
     }
 }
