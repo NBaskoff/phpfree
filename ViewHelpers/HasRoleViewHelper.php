@@ -34,7 +34,7 @@ class HasRoleViewHelper
             return false;
         }
 
-        $userRepo = Contract::make(UserRepository::class);
+        $userRepo = new UserRepository();
 
         return $userRepo->hasRole((int)$currentUserId, (string)$userOrRole);
     }
