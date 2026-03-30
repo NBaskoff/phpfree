@@ -9,8 +9,6 @@ use Exception;
 
 class Resolver
 {
-    public function __construct() {} // Конструктор теперь пустой
-
     public function resolveMethodArgs(string $controller, string $method, array $urlParams): array
     {
         $reflection = new ReflectionMethod($controller, $method); // Рефлексия метода
