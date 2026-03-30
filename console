@@ -1,8 +1,8 @@
 <?php
 
-require_once __DIR__ . '/Core/App.php'; // Подключение App
-Core\App::init(__DIR__); // Инициализация
+require_once __DIR__ . '/Core/App.php'; // Подключаем ядро
+Core\App::init(__DIR__); // Инициализация среды
 
-$router = new Core\Router(); // Создание роутера
-$router->loadRoutes('cli', Core\Path::routes('console.php')); // Консольные роуты
-$router->dispatch(); // Запуск команды
+$router = new Core\Router(); // Создаем автономный роутер
+$router->loadRoutes('cli', Core\Path::routes('console.php')); // Загружаем консольные команды
+$router->dispatch(); // Запускаем выполнение команды
