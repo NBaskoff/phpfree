@@ -3,62 +3,47 @@
 namespace Commands;
 
 use Core\Path;
+use Exception;
 
 /**
- * Команда для создания нового файла миграции в папке /Migrations
+ * Команда для генерации шаблона миграции
  */
 class MakeMigrationCommand extends BaseCommand
 {
     /**
-     * Выполнение создания файла-шаблона миграции
-     *
-     * @param array $args Аргументы командной строки
-     * @return void
+     * Создает файл миграции в директории /Migrations
      */
     public function execute(array $args): void
     {
-        if (empty($args[0])) {
-            $this->error("Ошибка: Укажите имя миграции (например: create_users_table)");
-            return;
+        if (empty($args[0])) { // Проверяем наличие имени
+            $this->error("Ошибка: Укажите имя миграции (например: create_users_table)"); // Вывод ошибки
+            return; // Выход
         }
 
-        // Подготовка имен
-        $name = strtolower($args[0]);
-        $timestamp = date('Y_m_d_His');
-        $className = $this->convertToClassName($name);
-        $fileName = "{$timestamp}_{$name}.php";
+        $name = strtolower($args[0]); // Приводим к нижнему регистру
+        $timestamp = date('Y_m_d_His'); // Генерируем метку времени
+        $className = $this->convertToClassName($name); // Преобразуем в CamelCase
+        $fileName = "{$timestamp}_{$name}.php"; // Формируем имя файла
 
-        // Путь к папке /Migrations в корне
-        $directory = Path::root('Migrations');
+        $directory = Path::root('Migrations'); // Определяем путь к папке миграций
+        if (!is_dir($directory)) mkdir($directory, 0755, true); // Создаем папку если нет
 
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
+        $path = $directory . DIRECTORY_SEPARATOR . $fileName; // Полный путь к файлу
+        file_put_contents($path, $this->getTemplate($className)); // Записываем шаблон
 
-        $path = $directory . DIRECTORY_SEPARATOR . $fileName;
-
-        // Запись шаблона в файл
-        file_put_contents($path, $this->getTemplate($className));
-
-        $this->success("Миграция создана: Migrations/{$fileName}");
+        $this->success("Миграция создана: Migrations/{$fileName}"); // Успешное завершение
     }
 
     /**
-     * Преобразует snake_case в CamelCase для имени класса миграции
-     *
-     * @param string $name
-     * @return string
+     * Преобразует snake_case в CamelCase для соответствия классу
      */
     private function convertToClassName(string $name): string
     {
-        return str_replace('_', '', ucwords($name, '_'));
+        return str_replace('_', '', ucwords($name, '_')); // Формирование имени класса
     }
 
     /**
-     * Возвращает заготовку PHP-кода для новой миграции
-     *
-     * @param string $className
-     * @return string
+     * Возвращает PHP код шаблона
      */
     private function getTemplate(string $className): string
     {
@@ -73,10 +58,7 @@ use Contracts\DatabaseContract;
 class {$className}
 {
     /**
-     * Выполнение миграции (создание таблиц/колонок)
-     * 
-     * @param DatabaseContract \$db
-     * @return void
+     * Выполнение миграции
      */
     public function up(DatabaseContract \$db): void
     {
@@ -84,10 +66,7 @@ class {$className}
     }
 
     /**
-     * Откат миграции (удаление таблиц/колонок)
-     * 
-     * @param DatabaseContract \$db
-     * @return void
+     * Откат миграции
      */
     public function down(DatabaseContract \$db): void
     {

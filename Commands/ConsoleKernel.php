@@ -3,55 +3,36 @@
 namespace Commands;
 
 use Core\Path;
+use Core\Resolver;
 
-/**
- * Ядро управления консольными командами
- */
+// Подключаем резолвер
+
 class ConsoleKernel
 {
-    /**
-     * Список зарегистрированных команд
-     * @var array
-     */
-    protected array $commands = [];
+    protected array $commands = []; // Массив из config/commands.php
 
-    /**
-     * Загружает команды из конфигурационного файла
-     */
     public function __construct()
     {
-        $configPath = Path::configs('commands.php');
-        if (file_exists($configPath)) {
-            $this->commands = require $configPath;
-        }
+        $configPath = Path::configs('commands.php'); // Путь к конфигу
+        if (file_exists($configPath)) $this->commands = require $configPath; // Загрузка команд
     }
 
-    /**
-     * Обработка входящего консольного запроса
-     *
-     * @param array $argv Аргументы из терминала
-     * @return void
-     */
     public function handle(array $argv): void
     {
-        // Название команды (например, make:migration)
-        $commandName = $argv[1] ?? 'list';
+        $commandName = $argv[1] ?? 'list'; // Берем имя команды
 
         if (!isset($this->commands[$commandName])) {
-            echo "\033[31mОшибка: Команда '{$commandName}' не найдена в config/commands.php\033[0m\n";
+            echo "\033[31mОшибка: Команда '{$commandName}' не найдена.\033[0m\n"; // Ошибка
             return;
         }
 
-        $commandClass = $this->commands[$commandName];
+        $commandClass = $this->commands[$commandName]; // Класс из конфига
 
-        // Создаем экземпляр команды напрямую
         if (class_exists($commandClass)) {
-            $command = new $commandClass();
-
-            // Передаем аргументы (начиная со второго индекса) в метод execute
-            $command->execute(array_slice($argv, 2));
+            $command = new Resolver()->resolveDependency($commandClass); // Создаем команду через DI
+            $command->execute(array_slice($argv, 2)); // Запуск выполнения
         } else {
-            echo "\033[31mОшибка: Класс '{$commandClass}' не найден.\033[0m\n";
+            echo "\033[31mОшибка: Класс '{$commandClass}' не найден.\033[0m\n"; // Ошибка класса
         }
     }
 }
