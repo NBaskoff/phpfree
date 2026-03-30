@@ -10,13 +10,23 @@ class Contract
 {
     protected static array $bindings = []; // Загруженные связи
     protected static array $instances = []; // Кэш синглтонов
+    protected static array $configs = []; // Список подключенных файлов конфигурации
 
     public static function make(string $abstract): object
     {
         if (isset(self::$instances[$abstract])) return self::$instances[$abstract]; // Возврат синглтона
-        // Универсальный текст ошибки без привязки к конкретному файлу
-        $concrete = self::$bindings[$abstract]['concrete'] ?? throw new Exception("Реализация для контракта [{$abstract}] не зарегистрирована.");
-        $object = new Resolver()->resolveDependency($concrete); // PHP 8.4: создание без скобок
+
+        if (!isset(self::$bindings[$abstract])) {
+            $files = implode("\n - ", self::$configs); // Формируем список файлов для ошибки
+            throw new Exception(
+                "Реализация для контракта [{$abstract}] не зарегистрирована.\n" .
+                "Проверьте следующие файлы конфигурации:\n - {$files}"
+            );
+        }
+
+        $concrete = self::$bindings[$abstract]['concrete'];
+        $object = new Resolver()->resolveDependency($concrete); // PHP 8.4: инстанцирование без скобок
+
         if (self::$bindings[$abstract]['singleton'] ?? false) self::$instances[$abstract] = $object; // Сохранение синглтона
         return $object; // Возврат объекта
     }
@@ -24,6 +34,7 @@ class Contract
     public static function loadConfig(string $path): void
     {
         if (!file_exists($path)) throw new Exception("Файл конфигурации не найден: {$path}"); // Проверка пути
+        self::$configs[] = realpath($path); // Запоминаем путь к файлу конфигурации
         $config = require $path; // Загрузка массива
         foreach ($config['bindings'] ?? [] as $iface => $impl) self::bind($iface, $impl); // Регистрация bind
         foreach ($config['singletons'] ?? [] as $iface => $impl) self::singleton($iface, $impl); // Регистрация singleton
