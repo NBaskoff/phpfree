@@ -13,12 +13,13 @@
 ### 1. Настройка окружения:
 Скопируйте файл .env.example в .env и укажите параметры вашей базы данных:
 
+    APP_IDE_HELPER=true
     DB_DRIVER=mysql
     DB_HOST=127.0.0.1
     DB_NAME=phpfree_db
     DB_USER=root
     DB_PASS=
-    APP_IDE_HELPER=true
+    DB_CHARSET=utf8mb4
 
 ### 2. Подготовка фронтенда (Laravel Mix):
 Для сборки стилей и скриптов через webpack.mix.js используйте стандартные команды npm:
