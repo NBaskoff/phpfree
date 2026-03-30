@@ -2,31 +2,23 @@
 
 namespace Core;
 
-/**
- * Класс инициализации приложения (Web и CLI)
- */
 class App
 {
-    /**
-     * Подготавливает окружение: пути, автозагрузку, конфиги и .env
-     *
-     * @param string $publicPath Путь к папке public
-     */
     public static function init(string $publicPath): void
     {
-        // 1. Инициализация путей (Path::configs, Path::routes и т.д.)
-        require_once __DIR__ . '/Path.php';
-        Path::initFromPublic($publicPath);
+        require_once __DIR__ . '/Path.php'; // Инициализация путей
+        Path::initFromPublic($publicPath); // Настройка путей
 
-        // 2. Регистрация автозагрузчика классов
-        require_once Path::root('Core/Autoloader.php');
-        Autoloader::register();
+        require_once Path::root('Core/Autoloader.php'); // Автозагрузчик
+        Autoloader::register(); // Регистрация
 
-        // 3. Загрузка функций-хелперов и переменных окружения
-        require_once Path::root('Core/Env.php');
-        Env::load(Path::root('.env'));
+        require_once Path::root('Core/Env.php'); // Переменные окружения
+        Env::load(Path::root('.env')); // Загрузка .env
 
-        // 4. Загрузка конфигурации DI-контейнера через новый метод configs()
-        Contract::loadConfig(Path::configs('contracts.php'));
+        $request = new Request(); // Создание запроса
+        $resolver = new Resolver($request); // Создание резолвера
+
+        Contract::setResolver($resolver); // Привязка к контракту
+        Contract::loadConfig(Path::configs('contracts.php')); // Загрузка биндингов
     }
 }
