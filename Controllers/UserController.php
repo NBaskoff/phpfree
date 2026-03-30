@@ -10,5 +10,10 @@ class UserController extends BaseController
     {
         return $this->display('user/index', $action());
     }
+
+    public function actionOneGet($id)
+    {
+        echo $id;
+    }
 }
 

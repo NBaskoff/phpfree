@@ -7,6 +7,9 @@ return [
     '/users' => [
         'GET' => [\Controllers\UserController::class, 'actionIndexGet']
     ],
+    '/user/{id}' => [
+        'GET' => [\Controllers\UserController::class, 'actionOneGet']
+    ],
 
 /*    '/user/{id}' => [
         'GET' => [UserController::class, 'show']
