@@ -2,45 +2,36 @@
 
 namespace Commands;
 
-use Core\Contract;
-use Contracts\DatabaseContract;
+use Core\Resolver; // Резолвер
+use Contracts\DatabaseContract; // Контракт БД
 
-/**
- * Команда для полного пересоздания базы данных (Rollback всех + Migrate)
- */
 class MigrateRefreshCommand extends BaseCommand
 {
-    /**
-     * Выполнение полного сброса и повторного запуска миграций
-     *
-     * @param array $args
-     * @return void
-     */
+    public function __construct(
+        protected readonly DatabaseContract $db // Внедрение БД через DI
+    ) {}
+
     public function execute(array $args): void
     {
-        /** @var DatabaseContract $db */
-        $db = Contract::make(DatabaseContract::class);
+        $this->warn("Начинается полный сброс базы данных..."); // Предупреждение
 
-        $this->warn("Начинается полный сброс базы данных...");
+        $resolver = new Resolver(); // Создаем резолвер без скобок (PHP 8.4)
 
-        // 1. Полный откат всех миграций по одной
-        while (true) {
-            $last = $db->row("SELECT id FROM migrations LIMIT 1");
-            if (!$last) {
-                break;
-            }
+        while (true) { // Цикл полной очистки
+            $last = $this->db->row("SELECT id FROM migrations LIMIT 1"); // Проверка наличия записей
+            if (!$last) break; // Выход, если пусто
 
-            // Используем уже готовую логику отката (по батчам)
-            $rollback = new MigrateRollbackCommand();
-            $rollback->execute([]);
+            // Получаем команду отката через Resolver (автоматически прокинет БД в конструктор)
+            $rollback = $resolver->resolveDependency(MigrateRollbackCommand::class);
+            $rollback->execute([]); // Выполняем откат батча
         }
 
-        $this->info("База данных очищена. Запуск миграций...");
+        $this->info("База данных очищена. Запуск миграций..."); // Инфо
 
-        // 2. Повторный запуск всех миграций
-        $migrate = new MigrateCommand();
-        $migrate->execute([]);
+        // Получаем команду миграции через Resolver (внедрит БД автоматически)
+        $migrate = $resolver->resolveDependency(MigrateCommand::class);
+        $migrate->execute([]); // Запускаем создание таблиц
 
-        $this->success("Команда migrate:refresh успешно выполнена.");
+        $this->success("Команда migrate:refresh успешно выполнена."); // Успех
     }
 }
