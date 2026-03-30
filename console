@@ -1,8 +1,14 @@
+#!/usr/bin/env php
 <?php
 
-require_once __DIR__ . '/Core/App.php'; // Подключаем ядро
-Core\App::init(__DIR__); // Инициализация среды
+use Core\App;
+use Commands\ConsoleKernel;
 
-$router = new Core\Router(); // Создаем автономный роутер
-$router->loadRoutes('cli', Core\Path::routes('console.php')); // Загружаем консольные команды
-$router->dispatch(); // Запускаем выполнение команды
+require_once __DIR__ . '/Core/App.php';
+
+// Инициализируем окружение (указываем путь к public)
+App::init(__DIR__ . '/public');
+
+// Запускаем консольное ядро
+$kernel = new ConsoleKernel();
+$kernel->handle($argv);
