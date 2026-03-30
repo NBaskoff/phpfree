@@ -40,7 +40,7 @@
 - `/Commands` — Классы консольных команд (Kernel, BaseCommand).
 - `/config` — Конфигурация (БД, маршруты, контракты, хелперы).
 - `/Contracts` — Интерфейсы системы.
-- `/Core` — Ядро фреймворка (Resolver, Router, App, View, Request, Config, Env, Path, Autoloader).
+- `/Core` — Ядро фреймворка (Resolver, Router, App, View, Request, Env, Path, Autoloader).
 - `/Models` — Модели данных с автоматическим маппингом типов.
 - `/Repositories` — Слой доступа к данным и бизнес-логика БД.
 - `/Requests` — Валидация и фильтрация входящих данных.
