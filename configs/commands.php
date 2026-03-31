@@ -5,4 +5,5 @@ return [
     'migrate'          => \Commands\MigrateCommand::class,
     'migrate:rollback' => \Commands\MigrateRollbackCommand::class,
     'migrate:refresh'  => \Commands\MigrateRefreshCommand::class,
+    'ide:helper'       => \Commands\IdeHelperCommand::class,
 ];

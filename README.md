@@ -13,7 +13,6 @@
 ### 1. Настройка окружения:
 Скопируйте файл .env.example в .env и укажите параметры вашей базы данных:
 
-    APP_IDE_HELPER=true
     DB_DRIVER=mysql
     DB_NAME=phpfree_db
 

@@ -6,3 +6,4 @@ ViewHelpers/.ide_helper.php
 /node_modules
 .env
 /public/js/app.js.LICENSE.txt
+.phpstorm.meta.php

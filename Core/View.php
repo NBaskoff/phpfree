@@ -47,10 +47,6 @@ class View
             throw new Exception("Конфигурация хелперов должна возвращать массив.");
         }
 
-        // Проверяем настройку: если APP_IDE_HELPER нет или false, вернется false
-        $shouldGenerateMeta = (bool)env('APP_IDE_HELPER', false);
-        $metaContent = "<?php\n/** @noinspection ALL */\n\n";
-
         foreach ($helpers as $funcName => $fullClass) {
             $normalizedClass = '\\' . ltrim($fullClass, '\\');
 
@@ -69,32 +65,6 @@ class View
                 }");
             }
 
-            // Генерируем мета-данные только если флаг включен
-            if ($shouldGenerateMeta) {
-                try {
-                    $ref = new \ReflectionClass($normalizedClass);
-                    $method = $ref->getMethod('__invoke');
-                    $params = [];
-                    foreach ($method->getParameters() as $p) {
-                        $type = $p->hasType() ? $p->getType() . ' ' : '';
-                        $paramStr = $type . '$' . $p->getName();
-                        if ($p->isDefaultValueAvailable()) {
-                            $default = var_export($p->getDefaultValue(), true);
-                            $paramStr .= " = " . str_replace("\n", "", $default);
-                        }
-                        $params[] = $paramStr;
-                    }
-                    $metaContent .= "function $functionName(" . implode(', ', $params) . ") { }\n";
-                } catch (\ReflectionException $e) {
-                    // Игнорируем ошибки рефлексии для мета-файла
-                }
-            }
-        }
-
-        // Записываем файл только если генерация была запрошена
-        if ($shouldGenerateMeta) {
-            $metaFile = Path::root('ViewHelpers' . DIRECTORY_SEPARATOR . '.ide_helper.php');
-            file_put_contents($metaFile, $metaContent);
         }
 
         self::$helpersLoaded = true;
