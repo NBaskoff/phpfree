@@ -1,10 +1,6 @@
 <?php
-
-// Подключаем App из новой директории /app/Core/
-require_once __DIR__ . '/../app/Core/App.php';
-
-// Инициализируем систему от корня проекта
-Core\App::init();
+require_once __DIR__ . '/../app/Core/App.php'; // Подключаем App из директории /app/
+Core\App::init(); // Инициализируем систему от корня проекта
 
 // Стандартный запуск роутера
 $router = new Core\Router();
