@@ -20,7 +20,7 @@ class Path
     public static function initFromRoot(string $rootDir): void
     {
         self::$root = $rootDir;
-        self::$configs   = self::$root . DIRECTORY_SEPARATOR . 'config';
+        self::$configs   = self::$root . DIRECTORY_SEPARATOR . 'configs';
         self::$templates = self::$root . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'templates';
         self::$routes    = self::$root . DIRECTORY_SEPARATOR . 'routes';
         $public = include self::configs("paths.php");

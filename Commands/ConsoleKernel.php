@@ -9,7 +9,7 @@ use Core\Resolver;
 
 class ConsoleKernel
 {
-    protected array $commands = []; // Массив из config/commands.php
+    protected array $commands = []; // Массив из configs/commands.php
 
     public function __construct()
     {
