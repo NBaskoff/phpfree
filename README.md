@@ -35,14 +35,14 @@
 - `php console make:migration name` — генерация шаблона новой миграции с таймстемпом.
 
 ## 📂 Структура проекта
-- `/Actions` — Одиночные классы логики (Invokable).
-- `/Commands` — Классы консольных команд (Kernel, BaseCommand).
+- `/app/Actions` — Одиночные классы логики (Invokable).
+- `/app/Commands` — Классы консольных команд (Kernel, BaseCommand).
 - `/config` — Конфигурация (БД, маршруты, контракты, хелперы).
-- `/Contracts` — Интерфейсы системы.
-- `/Core` — Ядро фреймворка (Resolver, Router, App, View, Request, Env, Path, Autoloader).
-- `/Models` — Модели данных с автоматическим маппингом типов.
-- `/Repositories` — Слой доступа к данным и бизнес-логика БД.
-- `/Requests` — Валидация и фильтрация входящих данных.
+- `/app/Contracts` — Интерфейсы системы.
+- `/app/Core` — Ядро фреймворка (Resolver, Router, App, View, Request, Env, Path, Autoloader).
+- `/app/Models` — Модели данных с автоматическим маппингом типов.
+- `/app/Repositories` — Слой доступа к данным и бизнес-логика БД.
+- `/app/Requests` — Валидация и фильтрация входящих данных.
 - `/assets/templates` — HTML шаблоны и макеты оформления.
-- `/Migrations` — История изменений структуры БД.
+- `/app/Migrations` — История изменений структуры БД.
 - webpack.mix.js — Конфигурация сборки ассетов Laravel Mix.
