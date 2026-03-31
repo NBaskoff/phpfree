@@ -10,8 +10,6 @@ use Core\Path;
 // Пути
 use Exception;
 
-// Исключения
-
 /**
  * Команда отката последней ПАРТИИ (батча) миграций
  */
@@ -53,7 +51,7 @@ class MigrateRollbackCommand extends BaseCommand
 
     private function rollbackFile(string $fileName, int $id): void
     {
-        $file = Path::root('Migrations' . DIRECTORY_SEPARATOR . $fileName); // Полный путь
+        $file = Path::migrations($fileName); // Полный путь
         if (!file_exists($file)) {
             $this->error("Файл $fileName не найден."); // Ошибка файла
             return; // Пропуск

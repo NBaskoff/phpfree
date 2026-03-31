@@ -58,6 +58,13 @@ class Path
         return self::getPath('public', $subPath);
     }
 
+    /** Путь к файлам миграций */
+    public static function migrations(string $subPath = ''): string
+    {
+        return self::getPath('migrations', $subPath);
+    }
+
+
     /** Путь к директории приложения (/app) */
     public static function app(string $subPath = ''): string
     {

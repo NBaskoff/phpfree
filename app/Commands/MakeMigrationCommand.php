@@ -25,13 +25,13 @@ class MakeMigrationCommand extends BaseCommand
         $className = $this->convertToClassName($name); // Преобразуем в CamelCase
         $fileName = "{$timestamp}_{$name}.php"; // Формируем имя файла
 
-        $directory = Path::root('Migrations'); // Определяем путь к папке миграций
+        $directory = Path::migrations(); // Определяем путь к папке миграций
         if (!is_dir($directory)) mkdir($directory, 0755, true); // Создаем папку если нет
 
         $path = $directory . DIRECTORY_SEPARATOR . $fileName; // Полный путь к файлу
         file_put_contents($path, $this->getTemplate($className)); // Записываем шаблон
 
-        $this->success("Миграция создана: Migrations/{$fileName}"); // Успешное завершение
+        $this->success("Миграция создана: {$directory}/{$fileName}"); // Успешное завершение
     }
 
     /**

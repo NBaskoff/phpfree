@@ -25,7 +25,7 @@ class MigrateCommand extends BaseCommand
         $executed = $this->getExecutedMigrations(); // Получаем список уже выполненных
         $currentBatch = $this->getNextBatchNumber(); // Определяем номер батча
 
-        $dir = Path::root('Migrations'); // Путь к папке миграций
+        $dir = Path::migrations(); // Путь к папке миграций
         if (!is_dir($dir)) return; // Выход если папки нет
 
         $files = glob($dir . '/*.php'); // Берем все PHP файлы
