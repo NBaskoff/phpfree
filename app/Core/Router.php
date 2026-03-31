@@ -11,7 +11,7 @@ class Router
 {
     private static ?self $instance = null; // Инстанс для работы хелпера route()
     private array $routes = [];            // Массив для сопоставления запросов
-    private array $namedRoutes = [];       // Карта: [имя => путь]
+    private array $namedRoutes = [];       // Карта: [name => путь]
     private Request $request;
     private Resolver $resolver;
 
@@ -25,7 +25,7 @@ class Router
     /**
      * Статический метод для вызова из глобальной функции route()
      */
-    public static function url(string $name, array $params = []): string
+    public static function url(string $name, mixed $params = []): string
     {
         if (!self::$instance) {
             throw new Exception("Роутер не инициализирован.");
@@ -34,15 +34,24 @@ class Router
     }
 
     /**
-     * Генерация URL по имени с подстановкой параметров {id}
+     * Генерация URL по имени с подстановкой параметров
      */
-    public function generate(string $name, array $params = []): string
+    public function generate(string $name, mixed $params = []): string
     {
         if (!isset($this->namedRoutes[$name])) {
             throw new Exception("Маршрут с именем '{$name}' не найден.");
         }
 
         $path = $this->namedRoutes[$name];
+
+        // Если передан одиночный параметр (не массив), привязываем его к первому {placeholder}
+        if (!is_array($params)) {
+            if (preg_match('/\{([a-zA-Z0-9_]+)\}/', $path, $matches)) {
+                $params = [$matches[1] => $params];
+            } else {
+                $params = [];
+            }
+        }
 
         // Подставляем параметры в плейсхолдеры
         foreach ($params as $key => $value) {

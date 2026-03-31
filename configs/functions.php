@@ -26,9 +26,10 @@ if (!function_exists('config')) {
 
 if (!function_exists('route')) {
     /**
-     * Генерирует URL по имени маршрута с подстановкой параметров
+     * Генерирует URL по имени маршрута.
+     * Аргумент $params может быть массивом или одиночным значением.
      */
-    function route(string $name, array $params = []): string
+    function route(string $name, mixed $params = []): string
     {
         return \Core\Router::url($name, $params);
     }
