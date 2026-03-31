@@ -28,21 +28,32 @@
 
     php console migrate
 
+### 4. Подготовка IDE (PHPStorm):
+Сгенерируйте мета-данные для автодополнения ключей config() и функций vh_*:
+
+    php console ide:helper
+
 ## 💻 Консольные команды
 - `php console migrate` — выполнение новых миграций.
 - `php console migrate:rollback` — откат последней партии (батча).
 - `php console migrate:refresh` — полный перезапуск БД (откат всех и повторный накат).
 - `php console make:migration name` — генерация шаблона новой миграции с таймстемпом.
+- `php console ide:helper` — генерация .phpstorm.meta.php для подсказок в IDE.
+- `php console ide:helper --watch` — фоновое отслеживание изменений в /configs и /app.
 
 ## 📂 Структура проекта
 - `/app/Actions` — Одиночные классы логики (Invokable).
 - `/app/Commands` — Классы консольных команд (Kernel, BaseCommand).
-- `/config` — Конфигурация (БД, маршруты, контракты, хелперы).
 - `/app/Contracts` — Интерфейсы системы.
 - `/app/Core` — Ядро фреймворка (Resolver, Router, App, View, Request, Env, Path, Autoloader).
+- `/app/Databases` — Драйверы баз данных (MySQL, PostgreSQL).
+- `/app/Middleware` — Посредники запросов (Auth, CSRF и др.).
+- `/app/Migrations` — История изменений структуры базы данных.
 - `/app/Models` — Модели данных с автоматическим маппингом типов.
 - `/app/Repositories` — Слой доступа к данным и бизнес-логика БД.
 - `/app/Requests` — Валидация и фильтрация входящих данных.
+- `/app/ViewHelpers` — Классы динамических функций для шаблонов.
+- `/configs` — Конфигурация проекта, маршруты и хелперы.
 - `/assets/templates` — HTML шаблоны и макеты оформления.
-- `/app/Migrations` — История изменений структуры БД.
-- webpack.mix.js — Конфигурация сборки ассетов Laravel Mix.
+- `/public` — Публичная директория, точка входа и статика.
+- `webpack.mix.js` — Конфигурация сборки ассетов Laravel Mix.
