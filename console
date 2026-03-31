@@ -1,10 +1,5 @@
 #!/usr/bin/php
 <?php
-
-// Подключаем App из /app/Core/
-require_once __DIR__ . '/app/Core/App.php';
-
+require_once __DIR__ . '/app/Core/App.php'; // Подключаем App из /app/Core/
 Core\App::init(); // Инициализация
-
-// Запуск консольного ядра
-new Commands\ConsoleKernel()->handle($argv);
+new Commands\ConsoleKernel()->handle($argv); // Запуск консольного ядра
