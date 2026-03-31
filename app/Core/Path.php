@@ -13,15 +13,14 @@ class Path
     /**
      * Инициализация путей от корня проекта
      */
-    public static function initFromRoot(string $rootDir): void
+    public static function init(string $rootDir, ?string $configDir = null): void
     {
         self::$root = $rootDir; // Устанавливаем корень
-
-        // Папка конфигов всегда в корне /configs
-        self::$paths['configs'] = self::$root . DIRECTORY_SEPARATOR . 'configs';
-
-        $configPath = self::$paths['configs'] . DIRECTORY_SEPARATOR . 'paths.php'; // Путь к файлу путей
-
+        if (empty($configDir)) {
+            $configDir = self::$root . DIRECTORY_SEPARATOR . "configs";
+        }
+        self::$paths['configs'] = $configDir;
+        $configPath = self::configs("paths.php"); // Путь к файлу путей
         if (file_exists($configPath)) {
             $customPaths = require $configPath; // Загружаем пользовательские пути
             self::$paths = array_merge(self::$paths, $customPaths); // Объединяем массивы
@@ -63,7 +62,6 @@ class Path
     {
         return self::getPath('migrations', $subPath);
     }
-
 
     /** Путь к директории приложения (/app) */
     public static function app(string $subPath = ''): string
