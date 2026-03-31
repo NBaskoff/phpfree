@@ -6,5 +6,5 @@ require_once __DIR__ . '/app/Core/App.php';
 
 Core\App::init(); // Инициализация
 
-// Запуск консольного ядра (оно тоже переехало в /app/Commands)
-(new Commands\ConsoleKernel())->handle($argv);
+// Запуск консольного ядра
+new Commands\ConsoleKernel()->handle($argv);
