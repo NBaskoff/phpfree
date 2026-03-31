@@ -24,3 +24,13 @@ if (!function_exists('config')) {
     }
 }
 
+if (!function_exists('route')) {
+    /**
+     * Генерирует URL по имени маршрута с подстановкой параметров
+     */
+    function route(string $name, array $params = []): string
+    {
+        return \Core\Router::url($name, $params);
+    }
+}
+

@@ -44,7 +44,7 @@
 ## 📂 Структура проекта
 - `/app/Actions` — Одиночные классы логики (Invokable).
 - `/app/Commands` — Классы консольных команд (Kernel, BaseCommand).
-- `/app/Contracts` — Интерфейсы системы.
+- `/app/Contracts` — Интерфейсы системы для реализации DI.
 - `/app/Core` — Ядро фреймворка (Resolver, Router, App, View, Request, Env, Path, Autoloader).
 - `/app/Databases` — Драйверы баз данных (MySQL, PostgreSQL).
 - `/app/Middleware` — Посредники запросов (Auth, CSRF и др.).
