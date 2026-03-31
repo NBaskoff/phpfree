@@ -1,14 +1,31 @@
 <?php
 
-use Databases\MySQLDatabase;
-use Databases\PostgresDatabase;
+use Databases\{MySQLDatabase, PostgresDatabase};
 
-// Определяем драйвер из .env
-$driver = env('DB_DRIVER', 'mysql');
+return [
+    'connections' => [
+        'mysql' => [
+            'host'    => env('DB_HOST', '127.0.0.1'),
+            'port'    => env('DB_PORT', '3306'),
+            'dbname'  => env('DB_NAME'),
+            'user'    => env('DB_USER'),
+            'pass'    => env('DB_PASS', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+        ],
+        'pgsql' => [
+            'host'    => env('DB_HOST', '127.0.0.1'),
+            'port'    => env('DB_PORT', '5432'),
+            'dbname'  => env('DB_NAME'),
+            'user'    => env('DB_USER'),
+            'pass'    => env('DB_PASS', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+        ],
+    ],
 
-// Возвращаем просто строку (имя класса)
-return match($driver) {
-    'pgsql' => PostgresDatabase::class,
-    'mysql' => MySQLDatabase::class,
-    default => throw new \Exception("Неподдерживаемый драйвер БД: $driver")
-};
+    // Метод для получения класса (используется в contracts.php)
+    'class' => match(env('DB_DRIVER', 'mysql')) {
+        'pgsql' => PostgresDatabase::class,
+        'mysql' => MySQLDatabase::class,
+        default => throw new Exception("Неподдерживаемый драйвер")
+    }
+];

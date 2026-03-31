@@ -38,10 +38,8 @@ class Contract
     public static function loadConfig(string $path): void
     {
         if (!file_exists($path)) throw new Exception("Файл конфигурации не найден: {$path}"); // Проверка пути
-
         self::$loadedConfigs[] = realpath($path); // Запоминаем путь к файлу
         $config = require $path; // Загрузка массива
-
         foreach ($config['bindings'] ?? [] as $iface => $impl) self::bind($iface, $impl); // Регистрация bind
         foreach ($config['singletons'] ?? [] as $iface => $impl) self::singleton($iface, $impl); // Регистрация singleton
     }

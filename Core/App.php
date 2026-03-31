@@ -11,7 +11,7 @@ class App
         Path::initFromRoot(dirname(__DIR__)); // Инициализация Path
         require_once Path::configs('functions.php'); // ПОДКЛЮЧАЕМ ГЛОБАЛЬНЫЙ САХАР (env, view)
         Autoloader::register(); // Регистрация
-        if (file_exists(Path::root('.env'))) Env::load(Path::root('.env')); // Загрузка .env
+        Env::load(Path::root('.env')); // Загрузка .env
         Contract::loadConfig(Path::configs('contracts.php')); // Контракты
     }
 }

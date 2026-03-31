@@ -4,30 +4,18 @@ namespace Databases;
 
 use Exception;
 
-/**
- * Драйвер для работы с MySQL
- */
 class MySQLDatabase extends AbstractSqlDatabase
 {
-    /**
-     * @throws Exception
-     */
     public function __construct()
     {
-        // Берем настройки напрямую из окружения, так как конфиг теперь плоский
-        $host    = env('DB_HOST', '127.0.0.1'); // Хост
-        $port    = env('DB_PORT', '3306'); // Порт
-        $dbname  = env('DB_NAME'); // Имя базы
-        $user    = env('DB_USER'); // Логин
-        $pass    = env('DB_PASS', ''); // Пароль
-        $charset = env('DB_CHARSET', 'utf8mb4'); // Кодировка
+        $c = config('databases.connections.mysql'); // Читаем конфиг одной строкой
 
-        if (!$dbname || !$user) {
-            throw new Exception("Ошибка MySQL: Проверьте переменные в .env (DB_NAME, DB_USER).");
+        if (empty($c['dbname']) || empty($c['user'])) {
+            throw new Exception("Ошибка MySQL: Неверные настройки в config/databases.php"); // Валидация
         }
 
-        $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}"; // Сборка DSN
+        $dsn = "mysql:host={$c['host']};port={$c['port']};dbname={$c['dbname']};charset={$c['charset']}"; // DSN
 
-        $this->connect($dsn, $user, $pass); // Подключение через родительский метод
+        $this->connect($dsn, $c['user'], $c['pass']); // Подключение
     }
 }

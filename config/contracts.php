@@ -1,15 +1,15 @@
 <?php
 
-use Core\Path;
-use Contracts\DatabaseContract;
-use Core\Session;
-use Contracts\SessionContract;
+use Contracts\{DatabaseContract, SessionContract}; // Интерфейсы
+use Core\{Session}; // Реализации
 
-$database = require Path::configs('databases.php');
 return [
     'singletons' => [
-        DatabaseContract::class => $database,
-        SessionContract::class => Session::class
+        // Динамически получаем класс драйвера из конфига database
+        DatabaseContract::class => config('databases.class'),
+        SessionContract::class   => Session::class, // Сессия как синглтон
     ],
-    'bindings' => []
+    'bindings' => [
+        // Здесь можно регистрировать обычные привязки
+    ]
 ];
