@@ -14,19 +14,17 @@ class Path
     private static string $routes = '';
 
     /**
-     * @param string $currentDir
+     * @param string $rootDir
      * @return void
      */
-    public static function initFromPublic(string $currentDir): void
+    public static function initFromRoot(string $rootDir): void
     {
-        $realPublic = realpath($currentDir);
-
-        self::$public = $realPublic;
-        self::$root = dirname($realPublic);
-
+        self::$root = $rootDir;
         self::$configs   = self::$root . DIRECTORY_SEPARATOR . 'config';
         self::$templates = self::$root . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'templates';
         self::$routes    = self::$root . DIRECTORY_SEPARATOR . 'routes';
+        $public = include self::configs("paths.php");
+        self::$public = self::$root . DIRECTORY_SEPARATOR . $public["public"];
     }
 
     /**

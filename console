@@ -4,9 +4,8 @@
 use Core\App;
 use Commands\ConsoleKernel;
 
-require_once __DIR__ . '/Core/App.php'; // Подключение ядра
-
-App::init(); // Инициализация (путь вычислится автоматически относительно Core)
+require_once __DIR__ . '/Core/App.php'; // Путь к ядру
+Core\App::init();
 
 $kernel = new ConsoleKernel(); // Создание консольного ядра
 $kernel->handle($argv); // Обработка аргументов командной строки
