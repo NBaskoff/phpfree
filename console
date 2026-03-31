@@ -1,11 +1,10 @@
-#!/usr/bin/env php
+#!/usr/bin/php
 <?php
 
-use Core\App;
-use Commands\ConsoleKernel;
+// Подключаем App из /app/Core/
+require_once __DIR__ . '/app/Core/App.php';
 
-require_once __DIR__ . '/Core/App.php'; // Путь к ядру
-Core\App::init();
+Core\App::init(); // Инициализация
 
-$kernel = new ConsoleKernel(); // Создание консольного ядра
-$kernel->handle($argv); // Обработка аргументов командной строки
+// Запуск консольного ядра (оно тоже переехало в /app/Commands)
+(new Commands\ConsoleKernel())->handle($argv);
