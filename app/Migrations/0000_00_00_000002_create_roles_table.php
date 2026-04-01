@@ -2,7 +2,7 @@
 
 use Contracts\DatabaseContract;
 
-class CreateRolesTable
+return new class
 {
     public function up(DatabaseContract $db): void
     {
@@ -23,4 +23,4 @@ class CreateRolesTable
     {
         $db->query("DROP TABLE IF EXISTS roles");
     }
-}
+};

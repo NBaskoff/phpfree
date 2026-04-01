@@ -5,7 +5,7 @@ use Contracts\DatabaseContract;
 /**
  * Миграция для создания таблицы пользователей
  */
-class CreateUsersTable
+return new class
 {
     /**
      * Запуск миграции: создание таблицы
@@ -39,4 +39,4 @@ class CreateUsersTable
     {
         $db->query("DROP TABLE IF EXISTS users");
     }
-}
+};

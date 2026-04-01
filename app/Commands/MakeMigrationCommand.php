@@ -3,76 +3,75 @@
 namespace Commands;
 
 use Core\Path;
-use Exception;
 
 /**
- * Команда для генерации шаблона миграции
+ * Команда для генерации шаблона анонимной миграции
  */
 class MakeMigrationCommand extends BaseCommand
 {
     /**
-     * Создает файл миграции в директории /Migrations
+     * Создает файл миграции в директории, указанной в Path::migrations()
      */
     public function execute(array $args): void
     {
-        if (empty($args[0])) { // Проверяем наличие имени
-            $this->error("Ошибка: Укажите имя миграции (например: create_users_table)"); // Вывод ошибки
-            return; // Выход
+        // Проверяем наличие имени миграции в аргументах
+        if (empty($args[0])) {
+            $this->error("Ошибка: Укажите имя миграции (например: create_users_table)");
+            return;
         }
 
-        $name = strtolower($args[0]); // Приводим к нижнему регистру
-        $timestamp = date('Y_m_d_His'); // Генерируем метку времени
-        $className = $this->convertToClassName($name); // Преобразуем в CamelCase
-        $fileName = "{$timestamp}_{$name}.php"; // Формируем имя файла
+        $name = strtolower($args[0]); // Имя в нижнем регистре (snake_case)
+        $timestamp = date('Y_m_d_His'); // Временная метка для сортировки
+        $fileName = "{$timestamp}_{$name}.php"; // Имя файла: дата_имя.php
 
-        $directory = Path::migrations(); // Определяем путь к папке миграций
-        if (!is_dir($directory)) mkdir($directory, 0755, true); // Создаем папку если нет
+        $directory = Path::migrations(); // Получаем путь к папке миграций из конфига через Path
 
-        $path = $directory . DIRECTORY_SEPARATOR . $fileName; // Полный путь к файлу
-        file_put_contents($path, $this->getTemplate($className)); // Записываем шаблон
+        // Создаем директорию, если она еще не существует
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
 
-        $this->success("Миграция создана: {$directory}/{$fileName}"); // Успешное завершение
+        $path = $directory . DIRECTORY_SEPARATOR . $fileName;
+
+        // Записываем шаблон анонимного класса в файл
+        if (file_put_contents($path, $this->getTemplate())) {
+            $this->success("Миграция создана: {$path}");
+        } else {
+            $this->error("Ошибка: Не удалось записать файл миграции.");
+        }
     }
 
     /**
-     * Преобразует snake_case в CamelCase для соответствия классу
+     * Возвращает PHP код шаблона анонимной миграции (стандарт return new class)
      */
-    private function convertToClassName(string $name): string
+    private function getTemplate(): string
     {
-        return str_replace('_', '', ucwords($name, '_')); // Формирование имени класса
-    }
-
-    /**
-     * Возвращает PHP код шаблона
-     */
-    private function getTemplate(string $className): string
-    {
-        return <<<PHP
+        return <<<'PHP'
 <?php
 
 use Contracts\DatabaseContract;
 
 /**
- * Класс миграции {$className}
+ * Анонимная миграция (PHP 8.4 ready)
  */
-class {$className}
+return new class 
 {
     /**
-     * Выполнение миграции
+     * Выполнение миграции: создание таблиц или изменение структуры
      */
-    public function up(DatabaseContract \$db): void
+    public function up(DatabaseContract $db): void
     {
-        // \$db->query("CREATE TABLE ...");
+        // $db->query("CREATE TABLE ...");
     }
 
     /**
-     * Откат миграции
+     * Откат миграции: удаление таблиц или отмена изменений
      */
-    public function down(DatabaseContract \$db): void
+    public function down(DatabaseContract $db): void
     {
-        // \$db->query("DROP TABLE ...");
+        // $db->query("DROP TABLE ...");
     }
-}
+};
 PHP;
     }
 }

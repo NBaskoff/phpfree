@@ -7,44 +7,59 @@ use Contracts\DatabaseContract;
 use Exception;
 
 /**
- * Команда для запуска миграций с поддержкой батчей
+ * Команда для запуска анонимных миграций с поддержкой батчей
  */
 class MigrateCommand extends BaseCommand
 {
     /**
-     * PHP 8.4: Внедряем базу данных напрямую.
-     * Resolver сам создаст её при вызове команды из ConsoleKernel.
+     * PHP 8.4: Внедряем базу данных через Constructor Property Promotion.
      */
     public function __construct(
-        private readonly DatabaseContract $db // Используем readonly свойство
+        private readonly DatabaseContract $db
     ) {}
 
+    /**
+     * Основной метод выполнения команды
+     */
     public function execute(array $args): void
     {
-        $this->prepareMigrationsTable(); // Создаем таблицу если нет
-        $executed = $this->getExecutedMigrations(); // Получаем список уже выполненных
-        $currentBatch = $this->getNextBatchNumber(); // Определяем номер батча
+        $this->prepareMigrationsTable(); // Создаем таблицу истории, если её нет
+        $executed = $this->getExecutedMigrations(); // Получаем список уже выполненных файлов
 
-        $dir = Path::migrations(); // Путь к папке миграций
-        if (!is_dir($dir)) return; // Выход если папки нет
-
-        $files = glob($dir . '/*.php'); // Берем все PHP файлы
-        sort($files); // Сортируем по имени (по дате в имени)
-
-        $count = 0; // Счетчик выполненных файлов
-        foreach ($files as $file) {
-            $fileName = basename($file); // Имя файла
-            if (in_array($fileName, $executed)) continue; // Пропуск если уже была
-
-            $this->runMigration($file, $fileName, $currentBatch); // Запуск миграции
-            $count++; // Инкремент
+        $dir = Path::migrations(); // Путь к директории миграций из конфига
+        if (!is_dir($dir)) {
+            $this->error("Директория миграций не найдена: {$dir}");
+            return;
         }
 
-        $count > 0
-            ? $this->success("Миграция завершена. Батч: $currentBatch, файлов: $count")
-            : $this->info("Нет новых миграций."); // Итоговый вывод
+        $files = glob($dir . '/*.php'); // Собираем все PHP файлы миграций
+        sort($files); // Сортируем по имени (временная метка в начале имени файла)
+
+        $toExecute = [];
+        foreach ($files as $file) {
+            $fileName = basename($file);
+            if (!in_array($fileName, $executed)) {
+                $toExecute[] = ['file' => $file, 'name' => $fileName];
+            }
+        }
+
+        if (empty($toExecute)) {
+            $this->info("Нет новых миграций для запуска.");
+            return;
+        }
+
+        $currentBatch = $this->getNextBatchNumber(); // Определяем номер текущей пачки (батча)
+
+        foreach ($toExecute as $item) {
+            $this->runMigration($item['file'], $item['name'], $currentBatch);
+        }
+
+        $this->success("Миграция завершена. Выполнено файлов: " . count($toExecute) . " (Батч: $currentBatch)");
     }
 
+    /**
+     * Создает служебную таблицу для хранения истории миграций
+     */
     private function prepareMigrationsTable(): void
     {
         $this->db->query("CREATE TABLE IF NOT EXISTS migrations (
@@ -52,45 +67,59 @@ class MigrateCommand extends BaseCommand
             migration VARCHAR(255) NOT NULL,
             batch INTEGER NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )"); // Создание таблицы истории
+        )");
     }
 
+    /**
+     * Возвращает номер следующего батча
+     */
     private function getNextBatchNumber(): int
     {
-        $row = $this->db->row("SELECT MAX(batch) as max_batch FROM migrations"); // Ищем макс. батч
-        return ((int)($row['max_batch'] ?? 0)) + 1; // Увеличиваем на 1
+        $row = $this->db->row("SELECT MAX(batch) as max_batch FROM migrations");
+        return ((int)($row['max_batch'] ?? 0)) + 1;
     }
 
+    /**
+     * Возвращает список имен файлов уже выполненных миграций
+     */
     private function getExecutedMigrations(): array
     {
-        return array_column($this->db->all("SELECT migration FROM migrations"), 'migration'); // Список имен файлов
+        $result = $this->db->all("SELECT migration FROM migrations");
+        return array_column($result, 'migration');
     }
 
+    /**
+     * Подключает файл миграции и выполняет метод up()
+     */
     private function runMigration(string $file, string $fileName, int $batch): void
     {
-        require_once $file; // Подключаем файл миграции
-        $className = $this->getClassName($fileName); // Вычисляем имя класса
-        $migration = new $className(); // Создаем объект миграции
+        // Получаем объект анонимного класса, который возвращает файл миграции
+        $migration = include $file;
 
-        $this->db->beginTransaction(); // Открываем транзакцию
+        if (!is_object($migration)) {
+            $this->error("Ошибка: Файл {$fileName} должен возвращать 'return new class'.");
+            exit;
+        }
+
+        $this->db->beginTransaction(); // Стартуем транзакцию для безопасности данных
+
         try {
-            $migration->up($this->db); // Запускаем метод up и передаем объект БД
+            // Запускаем миграцию, передавая объект БД
+            $migration->up($this->db);
+
+            // Фиксируем выполнение в таблице истории
             $this->db->query("INSERT INTO migrations (migration, batch) VALUES (:m, :b)", [
                 'm' => $fileName,
                 'b' => $batch
-            ]); // Записываем в историю
-            $this->db->commit(); // Применяем изменения
-            $this->info("Выполнено: $fileName"); // Лог
-        } catch (Exception $e) {
-            $this->db->rollBack(); // Откат при ошибке
-            $this->error("Ошибка в $fileName: " . $e->getMessage()); // Вывод ошибки
-            exit; // Прекращаем выполнение
-        }
-    }
+            ]);
 
-    private function getClassName(string $fileName): string
-    {
-        $parts = explode('_', str_replace('.php', '', $fileName)); // Разбиваем имя файла по подчеркиванию
-        return implode('', array_map('ucfirst', array_slice($parts, 4))); // Собираем имя класса из конца
+            $this->db->commit(); // Применяем изменения в БД
+            $this->info("Выполнено: $fileName");
+
+        } catch (Exception $e) {
+            $this->db->rollBack(); // Откатываем транзакцию при любой ошибке
+            $this->error("Ошибка в миграции {$fileName}: " . $e->getMessage());
+            exit; // Прекращаем выполнение всей команды
+        }
     }
 }
